@@ -319,6 +319,16 @@ app.post('/api/decks/:slug/deploy', async (req, res) => {
       ownerId: RENDER_OWNER_ID,
       repo: REPO_URL,
       type: 'web_service',
+      envVars: [
+        { key: 'DECK_NAME', value: slug },
+        { key: 'GOOGLE_CLIENT_ID', value: config.GOOGLE_CLIENT_ID },
+        { key: 'GOOGLE_CLIENT_SECRET', value: config.GOOGLE_CLIENT_SECRET },
+        { key: 'SESSION_SECRET', value: sessionSecret },
+        { key: 'ADMIN_EMAILS', value: config.ADMIN_EMAILS },
+        { key: 'NODE_ENV', value: 'production' },
+        { key: 'DATA_DIR', value: '/var/data' },
+        { key: 'CALLBACK_URL', value: callbackUrl }
+      ],
       serviceDetails: {
         runtime: 'node',
         env: 'node',
@@ -328,17 +338,7 @@ app.post('/api/decks/:slug/deploy', async (req, res) => {
         envSpecificDetails: {
           buildCommand: 'npm install',
           startCommand: 'node server.js'
-        },
-        envVars: [
-          { key: 'DECK_NAME', value: slug },
-          { key: 'GOOGLE_CLIENT_ID', value: config.GOOGLE_CLIENT_ID },
-          { key: 'GOOGLE_CLIENT_SECRET', value: config.GOOGLE_CLIENT_SECRET },
-          { key: 'SESSION_SECRET', value: sessionSecret },
-          { key: 'ADMIN_EMAILS', value: config.ADMIN_EMAILS },
-          { key: 'NODE_ENV', value: 'production' },
-          { key: 'DATA_DIR', value: '/var/data' },
-          { key: 'CALLBACK_URL', value: callbackUrl }
-        ]
+        }
       }
     };
     const result = await renderApi('POST', '/v1/services', serviceBody);
