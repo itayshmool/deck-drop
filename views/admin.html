@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{DECK_NAME}} — Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .container { max-width: 680px; margin: 0 auto; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+    .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: #deff9a;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-family: 'Urbanist', sans-serif;
+      font-size: 28px;
+      font-weight: 600;
+    }
+    .nav-links { display: flex; gap: 16px; }
+    .nav-links a {
+      color: #64748b;
+      text-decoration: none;
+      font-size: 13px;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: #deff9a; }
+
+    /* Add users section */
+    .section {
+      background: #141414;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .section h2 {
+      font-family: 'Urbanist', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 16px;
+      color: #cbd5e1;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    input[type="email"], input[type="text"] {
+      flex: 1;
+      background: #0a0a0a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: #deff9a; }
+    textarea {
+      width: 100%;
+      background: #0a0a0a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      outline: none;
+      resize: vertical;
+      min-height: 80px;
+      transition: border-color 0.2s;
+    }
+    textarea:focus { border-color: #deff9a; }
+    .hint {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 12px;
+    }
+    button {
+      background: #1e293b;
+      color: #deff9a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #334155; }
+    .btn-danger {
+      color: #f87171;
+      border-color: transparent;
+      background: transparent;
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+    .btn-danger:hover { background: #1e293b; }
+
+    /* Users list */
+    .user-list { list-style: none; }
+    .user-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #1e293b;
+      font-size: 14px;
+    }
+    .user-item:last-child { border-bottom: none; }
+    .user-email { color: #cbd5e1; }
+    .admin-badge {
+      font-size: 11px;
+      color: #deff9a;
+      background: rgba(222, 255, 154, 0.1);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: 8px;
+    }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #141414;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 13px;
+      color: #deff9a;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .count { color: #64748b; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <div class="label">{{DECK_NAME}}</div>
+        <h1>Admin Panel</h1>
+      </div>
+      <div class="nav-links">
+        <a href="/">View Deck</a>
+        <a href="/logout">Sign Out</a>
+      </div>
+    </div>
+
+    <!-- Add single user -->
+    <div class="section">
+      <h2>Add User</h2>
+      <div class="input-row">
+        <input type="email" id="singleEmail" placeholder="user@gmail.com">
+        <button onclick="addSingle()">Add</button>
+      </div>
+    </div>
+
+    <!-- Bulk add -->
+    <div class="section">
+      <h2>Bulk Add</h2>
+      <p class="hint">One email per line, or comma-separated.</p>
+      <textarea id="bulkEmails" placeholder="user1@gmail.com&#10;user2@gmail.com&#10;user3@gmail.com"></textarea>
+      <div style="margin-top: 12px;">
+        <button onclick="addBulk()">Add All</button>
+      </div>
+    </div>
+
+    <!-- Users list -->
+    <div class="section">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 style="margin-bottom: 0;">Authorized Users</h2>
+        <span class="count" id="userCount"></span>
+      </div>
+      <ul class="user-list" id="userList"></ul>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let adminEmails = [];
+
+    async function loadUsers() {
+      const res = await fetch('/api/users');
+      const data = await res.json();
+      adminEmails = (data.admins || []).map(e => e.toLowerCase());
+      const list = document.getElementById('userList');
+      const count = document.getElementById('userCount');
+      count.textContent = data.users.length + ' user' + (data.users.length !== 1 ? 's' : '');
+      list.innerHTML = data.users.map(email => `
+        <li class="user-item">
+          <span>
+            <span class="user-email">${email}</span>
+            ${adminEmails.includes(email) ? '<span class="admin-badge">admin</span>' : ''}
+          </span>
+          ${!adminEmails.includes(email) ? `<button class="btn-danger" onclick="removeUser('${email}')">Remove</button>` : ''}
+        </li>
+      `).join('');
+    }
+
+    async function addSingle() {
+      const input = document.getElementById('singleEmail');
+      const email = input.value.trim();
+      if (!email) return;
+      await addEmails([email]);
+      input.value = '';
+    }
+
+    async function addBulk() {
+      const textarea = document.getElementById('bulkEmails');
+      const raw = textarea.value;
+      const emails = raw.split(/[\n,]+/).map(e => e.trim()).filter(Boolean);
+      if (!emails.length) return;
+      await addEmails(emails);
+      textarea.value = '';
+    }
+
+    async function addEmails(emails) {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emails })
+      });
+      const data = await res.json();
+      if (data.added && data.added.length > 0) {
+        showToast(`Added ${data.added.length} user${data.added.length > 1 ? 's' : ''}`);
+      } else {
+        showToast('No new users added (already exist)');
+      }
+      loadUsers();
+    }
+
+    async function removeUser(email) {
+      await fetch(`/api/users/${encodeURIComponent(email)}`, { method: 'DELETE' });
+      showToast(`Removed ${email}`);
+      loadUsers();
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>

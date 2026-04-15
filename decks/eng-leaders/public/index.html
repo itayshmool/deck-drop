@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Building AI-Native Companies</title>
+<meta name="description" content="How we restructured engineering teams for the AI era — new leadership models, xEngineers, and a shared AI platform that makes lean autonomous teams possible.">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://eng-leaders.onrender.com">
+<meta property="og:title" content="Building AI-Native Companies">
+<meta property="og:description" content="How we restructured engineering teams for the AI era — new leadership models, xEngineers, and a shared AI platform.">
+<meta property="og:image" content="https://eng-leaders.onrender.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Building AI-Native Companies">
+<meta name="twitter:description" content="How we restructured engineering teams for the AI era — new leadership models, xEngineers, and a shared AI platform.">
+<meta name="twitter:image" content="https://eng-leaders.onrender.com/og-image.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg-card: #141414;
+    --green: #deff9a;
+    --white: #ffffff;
+    --slate: #cbd5e1;
+    --muted: #64748b;
+    --dark-border: #1e1e1e;
+    --font-title: 'Urbanist', sans-serif;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: var(--font-body);
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+  }
+
+  .deck { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 80px 120px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(20px);
+    transition: opacity 0.5s ease, visibility 0.5s ease, transform 0.5s ease;
+    overflow: hidden;
+  }
+
+  .slide.active { opacity: 1; visibility: visible; transform: translateX(0); }
+  .slide.exit-left { transform: translateX(-20px); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slide, .progress, .menu-panel, .menu-overlay, .nav-btn, .menu-btn { transition: none; }
+  }
+
+  /* Typography */
+  .slide-label {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 20px;
+  }
+
+  .slide-title {
+    font-family: var(--font-title);
+    font-weight: 800;
+    font-size: 64px;
+    line-height: 1.1;
+    color: var(--white);
+    margin-bottom: 24px;
+    max-width: 900px;
+  }
+
+  .slide-title .green { color: var(--green); }
+  .slide-title.lg { font-size: 52px; }
+  .slide-title.md { font-size: 48px; }
+  .slide-title.sm { font-size: 44px; }
+
+  .slide-subtitle {
+    font-family: var(--font-body);
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--slate);
+    line-height: 1.6;
+    max-width: 700px;
+  }
+
+  .slide-body {
+    font-family: var(--font-body);
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--slate);
+    line-height: 1.7;
+    max-width: 800px;
+  }
+
+  .slide-quote {
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 42px;
+    line-height: 1.3;
+    color: var(--white);
+    max-width: 800px;
+  }
+
+  /* Bullets */
+  .bullets { list-style: none; display: flex; flex-direction: column; gap: 16px; margin-top: 8px; }
+  .bullets li {
+    font-family: var(--font-body);
+    font-size: 19px;
+    font-weight: 400;
+    color: var(--slate);
+    line-height: 1.6;
+    padding-left: 24px;
+    position: relative;
+  }
+  .bullets li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+  .bullets li strong { color: var(--white); font-weight: 600; }
+
+  /* Comparison Table */
+  .compare-table { margin-top: 32px; width: 100%; max-width: 800px; border-collapse: collapse; }
+  .compare-table th {
+    font-family: var(--font-body); font-size: 12px; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--green);
+    text-align: left; padding: 12px 20px; border-bottom: 1px solid var(--dark-border);
+  }
+  .compare-table td {
+    font-family: var(--font-body); font-size: 17px; color: var(--slate);
+    padding: 14px 20px; border-bottom: 1px solid var(--dark-border); vertical-align: top;
+  }
+  .compare-table td:first-child { color: var(--muted); opacity: 0.7; }
+  .compare-table td:last-child { color: var(--white); font-weight: 500; }
+
+  /* Org Diagram */
+  .org-diagram { display: flex; flex-direction: column; align-items: center; gap: 24px; margin-top: 40px; width: 100%; }
+  .org-row { display: flex; gap: 24px; justify-content: center; width: 100%; }
+  .org-box {
+    background: var(--bg-card); border: 1px solid var(--dark-border); border-radius: 12px;
+    padding: 28px 32px; text-align: center; min-width: 220px; flex: 1; max-width: 280px;
+  }
+  .org-box-title { font-family: var(--font-title); font-weight: 700; font-size: 20px; color: var(--white); margin-bottom: 8px; }
+  .org-connector { width: 2px; height: 24px; background: var(--green); opacity: 0.4; }
+  .org-bar {
+    background: linear-gradient(90deg, var(--green) 0%, #b8ff5a 100%);
+    border-radius: 12px; padding: 20px 40px; text-align: center; width: 100%; max-width: 880px;
+  }
+  .org-bar-title { font-family: var(--font-title); font-weight: 700; font-size: 18px; color: var(--bg); }
+  .org-bar-sub { font-family: var(--font-body); font-size: 13px; color: var(--bg); opacity: 0.7; }
+
+  /* Pillars */
+  .pillars { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-top: 40px; width: 100%; }
+  .pillar {
+    background: var(--bg-card); border: 1px solid var(--dark-border); border-radius: 12px;
+    padding: 28px 20px; display: flex; flex-direction: column; gap: 10px; position: relative; overflow: hidden;
+  }
+  .pillar::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--green); }
+  .pillar-num { font-family: var(--font-title); font-weight: 800; font-size: 36px; color: var(--green); opacity: 0.3; }
+  .pillar-title { font-family: var(--font-title); font-weight: 700; font-size: 17px; color: var(--white); line-height: 1.3; }
+  .pillar-body { font-family: var(--font-body); font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  /* Loop diagram */
+  .loop-diagram {
+    display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 20px;
+    padding: 20px; background: var(--bg-card); border: 1px solid var(--dark-border);
+    border-radius: 12px; max-width: 600px;
+  }
+  .loop-node {
+    font-family: var(--font-body); font-size: 14px; font-weight: 600; color: var(--green);
+    padding: 8px 16px; border: 1px solid var(--green); border-radius: 8px; opacity: 0.9;
+  }
+  .loop-arrow { color: var(--muted); font-size: 18px; }
+
+  /* Standards table */
+  .std-table { margin-top: 32px; width: 100%; max-width: 880px; border-collapse: collapse; }
+  .std-table th {
+    font-family: var(--font-body); font-size: 12px; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--green);
+    text-align: left; padding: 12px 20px; border-bottom: 1px solid var(--dark-border);
+  }
+  .std-table td {
+    font-family: var(--font-body); font-size: 16px; color: var(--slate);
+    padding: 14px 20px; border-bottom: 1px solid var(--dark-border);
+  }
+  .std-table td:first-child { color: var(--white); font-weight: 600; }
+
+  /* Before / After flow */
+  .flow-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+  .flow-step {
+    font-family: var(--font-body); font-size: 16px; color: var(--slate);
+    padding: 8px 16px; background: var(--bg-card); border: 1px solid var(--dark-border); border-radius: 8px;
+  }
+  .flow-arrow { color: var(--muted); font-size: 16px; }
+  .flow-row.bad .flow-step { opacity: 0.5; border-color: #333; }
+  .flow-row.good .flow-step { border-color: var(--green); color: var(--white); }
+  .flow-row.good .flow-arrow { color: var(--green); }
+
+  /* Creator grid */
+  .creator-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 32px; max-width: 840px; }
+  .creator-item { padding: 20px 24px; background: var(--bg-card); border: 1px solid var(--dark-border); border-radius: 12px; }
+  .creator-role { font-family: var(--font-body); font-size: 14px; font-weight: 600; color: var(--green); margin-bottom: 6px; }
+  .creator-old { font-size: 14px; color: var(--muted); text-decoration: line-through; margin-bottom: 4px; }
+  .creator-new { font-size: 15px; color: var(--white); font-weight: 500; }
+
+  /* Section Divider */
+  .slide.section-divider { justify-content: center; align-items: flex-start; }
+  .section-part {
+    font-family: var(--font-body); font-size: 14px; font-weight: 600;
+    letter-spacing: 3px; text-transform: uppercase; color: var(--green); margin-bottom: 20px;
+  }
+  .section-title { font-family: var(--font-title); font-weight: 800; font-size: 72px; color: var(--white); line-height: 1.1; }
+
+  /* Statement slide */
+  .slide.statement { justify-content: center; align-items: center; text-align: center; padding: 80px 160px; }
+  .statement .slide-title { font-size: 56px; max-width: 900px; }
+
+  /* Big number */
+  .big-number {
+    font-family: var(--font-title); font-weight: 900; font-size: 120px; color: var(--green);
+    opacity: 0.15; position: absolute; right: 80px; top: 60px; line-height: 1;
+  }
+
+  /* Navigation */
+  .nav {
+    position: fixed; bottom: 32px; right: 40px;
+    display: flex; align-items: center; gap: 16px; z-index: 100;
+  }
+  .nav-counter { font-family: var(--font-body); font-size: 13px; color: var(--muted); font-weight: 500; }
+  .nav-btn {
+    width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--dark-border);
+    background: var(--bg-card); color: var(--slate); font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+  }
+  .nav-btn:hover, .nav-btn:focus-visible { border-color: var(--green); color: var(--green); outline: none; }
+
+  /* Menu */
+  .menu-btn {
+    position: fixed; bottom: 32px; left: 40px; width: 40px; height: 40px; border-radius: 50%;
+    border: 1px solid var(--dark-border); background: var(--bg-card); color: var(--slate);
+    font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; z-index: 170;
+  }
+  .menu-btn:hover, .menu-btn:focus-visible { border-color: var(--green); color: var(--green); outline: none; }
+  .menu-btn.open { border-color: var(--green); color: var(--green); }
+
+  .menu-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 150;
+    opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+  .menu-overlay.open { opacity: 1; visibility: visible; }
+
+  .menu-panel {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 320px;
+    background: var(--bg-card); border-right: 1px solid var(--dark-border);
+    z-index: 160; transform: translateX(-100%); transition: transform 0.3s ease;
+    overflow-y: auto; padding: 32px 0;
+  }
+  .menu-panel.open { transform: translateX(0); }
+  .menu-panel::-webkit-scrollbar { width: 4px; }
+  .menu-panel::-webkit-scrollbar-track { background: transparent; }
+  .menu-panel::-webkit-scrollbar-thumb { background: var(--dark-border); border-radius: 2px; }
+
+  .menu-header {
+    font-family: var(--font-title); font-size: 14px; font-weight: 700; color: var(--green);
+    text-transform: uppercase; letter-spacing: 2px; padding: 0 24px 16px;
+    border-bottom: 1px solid var(--dark-border); margin-bottom: 8px;
+  }
+  .menu-section {
+    padding: 12px 24px 4px; font-family: var(--font-body); font-size: 10px; font-weight: 600;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px;
+  }
+  .menu-item {
+    display: flex; align-items: center; gap: 12px; padding: 10px 24px;
+    cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent;
+  }
+  .menu-item:hover, .menu-item:focus-visible { background: rgba(222,255,154,0.05); outline: none; }
+  .menu-item.active { background: rgba(222,255,154,0.08); border-left-color: var(--green); }
+  .menu-item-num { font-family: var(--font-body); font-size: 11px; font-weight: 600; color: var(--muted); min-width: 22px; }
+  .menu-item.active .menu-item-num { color: var(--green); }
+  .menu-item-title { font-family: var(--font-body); font-size: 13px; font-weight: 500; color: var(--slate); }
+  .menu-item.active .menu-item-title { color: var(--white); font-weight: 600; }
+  .menu-item-divider {
+    padding: 10px 24px; font-family: var(--font-title); font-size: 12px; font-weight: 700;
+    color: var(--green); opacity: 0.6; border-left: 3px solid transparent;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .menu-item-divider:hover { opacity: 1; background: rgba(222,255,154,0.05); }
+  .menu-item-divider.active { opacity: 1; border-left-color: var(--green); }
+
+  /* ── Responsive: Tablet (≤1024px) ── */
+  @media (max-width: 1024px) {
+    .slide { padding: 60px 60px 80px; }
+    .slide.statement { padding: 60px 80px; }
+    .slide-title { font-size: 52px; }
+    .slide-title.lg { font-size: 44px; }
+    .slide-title.md { font-size: 40px; }
+    .slide-title.sm { font-size: 38px; }
+    .statement .slide-title { font-size: 44px; }
+    .section-title { font-size: 56px; }
+    .pillars { grid-template-columns: repeat(3, 1fr); }
+    .big-number { font-size: 90px; right: 50px; top: 50px; }
+  }
+
+  /* ── Responsive: Mobile (≤768px) ── */
+  @media (max-width: 768px) {
+    .slide {
+      padding: 40px 28px 72px;
+      justify-content: flex-start;
+      padding-top: 64px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .slide.compact { padding: 36px 24px 72px; padding-top: 64px; }
+    .slide.statement { padding: 40px 28px 72px; justify-content: center; }
+    .slide.section-divider { padding: 40px 28px; justify-content: center; }
+
+    /* Typography */
+    .slide-title { font-size: 36px; margin-bottom: 16px; }
+    .slide-title.lg { font-size: 32px; }
+    .slide-title.md { font-size: 30px; }
+    .slide-title.sm { font-size: 28px; }
+    .statement .slide-title { font-size: 30px; }
+    .slide-subtitle { font-size: 17px; max-width: 100%; }
+    .slide-body { font-size: 15px; }
+    .slide-label { font-size: 11px; letter-spacing: 2px; margin-bottom: 12px; }
+    .slide-quote { font-size: 24px; }
+    .section-title { font-size: 44px; }
+    .section-part { font-size: 12px; }
+    .big-number { font-size: 64px; right: 24px; top: 40px; }
+    .bullets li { font-size: 16px; }
+
+    /* Compare table */
+    .compare-table { margin-top: 20px; }
+    .compare-table th { font-size: 11px; padding: 10px 14px; }
+    .compare-table td { font-size: 14px; padding: 10px 14px; }
+
+    /* Standards table */
+    .std-table { margin-top: 20px; }
+    .std-table th { font-size: 11px; padding: 10px 14px; }
+    .std-table td { font-size: 14px; padding: 10px 14px; }
+
+    /* Org diagram */
+    .org-diagram { gap: 16px; margin-top: 24px; }
+    .org-row { flex-direction: column; align-items: center; gap: 12px; }
+    .org-box { min-width: unset; max-width: 100%; width: 100%; padding: 16px 20px; }
+    .org-box-title { font-size: 18px; }
+    .org-bar { padding: 14px 20px; }
+    .org-bar-title { font-size: 15px; }
+    .org-bar-sub { font-size: 11px; }
+    .org-connector { height: 16px; }
+
+    /* Pillars: 2 columns */
+    .pillars { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 24px; }
+    .pillar { padding: 20px 16px; }
+    .pillar-num { font-size: 28px; }
+    .pillar-title { font-size: 15px; }
+    .pillar-body { font-size: 12px; }
+
+    /* Loop diagram */
+    .loop-diagram { flex-wrap: wrap; gap: 10px; padding: 16px; max-width: 100%; }
+    .loop-node { font-size: 12px; padding: 6px 12px; }
+    .loop-arrow { font-size: 14px; }
+
+    /* Flow rows */
+    .flow-row { flex-wrap: wrap; gap: 8px; }
+    .flow-step { font-size: 13px; padding: 6px 12px; }
+    .flow-arrow { font-size: 14px; }
+
+    /* Creator grid */
+    .creator-grid { grid-template-columns: 1fr; gap: 10px; margin-top: 16px; max-width: 100%; }
+    .creator-item { padding: 14px 18px; }
+    .creator-role { font-size: 12px; }
+    .creator-old { font-size: 12px; }
+    .creator-new { font-size: 13px; }
+
+    /* Navigation */
+    .nav { bottom: 16px; right: 16px; gap: 10px; }
+    .nav-btn { width: 36px; height: 36px; font-size: 16px; }
+    .nav-counter { font-size: 11px; }
+
+    /* Menu — top-left on mobile */
+    .menu-btn { top: 16px; bottom: auto; left: 16px; width: 36px; height: 36px; font-size: 16px; }
+    .menu-panel { width: 280px; padding: 24px 0; }
+    .menu-header { font-size: 12px; padding: 0 20px 12px; }
+    .menu-item { padding: 8px 20px; }
+    .menu-item-title { font-size: 12px; }
+    .menu-item-num { font-size: 10px; }
+    .menu-section { padding: 10px 20px 4px; font-size: 9px; }
+    .menu-item-divider { padding: 8px 20px; font-size: 11px; }
+  }
+
+  /* ── Responsive: Small phone (≤420px) ── */
+  @media (max-width: 420px) {
+    .slide { padding: 32px 20px 68px; padding-top: 60px; }
+    .slide.compact { padding: 28px 16px 68px; padding-top: 60px; }
+    .slide.statement { padding: 32px 20px 68px; }
+
+    .slide-title { font-size: 28px; }
+    .slide-title.lg { font-size: 26px; }
+    .slide-title.md { font-size: 25px; }
+    .slide-title.sm { font-size: 24px; }
+    .statement .slide-title { font-size: 24px; }
+    .section-title { font-size: 36px; }
+    .slide-subtitle { font-size: 15px; }
+    .big-number { font-size: 48px; right: 16px; top: 20px; }
+    .bullets li { font-size: 14px; line-height: 1.5; }
+
+    /* Pillars: single column */
+    .pillars { grid-template-columns: 1fr; }
+
+    /* Flow: vertical */
+    .flow-row { flex-direction: column; align-items: flex-start; }
+    .flow-arrow { transform: rotate(90deg); align-self: center; }
+
+    /* Tables: hide Role column */
+    .std-table td:nth-child(2), .std-table th:nth-child(2) { display: none; }
+
+    .org-box-title { font-size: 16px; }
+    .menu-panel { width: 260px; }
+  }
+
+  /* Progress bar */
+  .progress {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: var(--green); transition: width 0.4s ease; z-index: 100;
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<!-- Menu -->
+<button class="menu-btn" id="menuBtn" title="Menu">☰</button>
+<div class="menu-overlay" id="menuOverlay"></div>
+<div class="menu-panel" id="menuPanel">
+  <div class="menu-header">Eng Leaders Forum</div>
+
+  <div class="menu-section">Opening</div>
+  <div class="menu-item" data-go="1"><span class="menu-item-num">1</span><span class="menu-item-title">AI-Native Teams</span></div>
+  <div class="menu-item" data-go="2"><span class="menu-item-num">2</span><span class="menu-item-title">Why Now</span></div>
+
+  <div class="menu-item-divider" data-go="3">People & Leadership</div>
+  <div class="menu-item" data-go="4"><span class="menu-item-num">4</span><span class="menu-item-title">New Leadership Model</span></div>
+  <div class="menu-item" data-go="5"><span class="menu-item-num">5</span><span class="menu-item-title">The xEngineer</span></div>
+  <div class="menu-item" data-go="6"><span class="menu-item-num">6</span><span class="menu-item-title">Everyone is a Creator</span></div>
+  <div class="menu-item" data-go="7"><span class="menu-item-num">7</span><span class="menu-item-title">Contribution Model</span></div>
+
+  <div class="menu-item-divider" data-go="8">AI-Native Infrastructure</div>
+  <div class="menu-item" data-go="9"><span class="menu-item-num">9</span><span class="menu-item-title">Built on AI</span></div>
+  <div class="menu-item" data-go="10"><span class="menu-item-num">10</span><span class="menu-item-title">The 5 Pillars</span></div>
+  <div class="menu-item" data-go="11"><span class="menu-item-num">11</span><span class="menu-item-title">Guild Masters</span></div>
+
+  <div class="menu-section">Closing</div>
+  <div class="menu-item" data-go="12"><span class="menu-item-num">12</span><span class="menu-item-title">Closing</span></div>
+</div>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide statement active" data-slide="0">
+    <div class="slide-label">Engineering Leaders Forum</div>
+    <div class="slide-title">Building <span class="green">AI-Native</span><br>Companies</div>
+    <div class="slide-subtitle" style="text-align:center; margin-top: 12px;">How we restructured for the AI era</div>
+    <div style="margin-top: 48px; font-size: 15px; color: var(--muted);">Itay Shmool &middot; 2026</div>
+  </div>
+
+  <!-- SLIDE 2: Why Now -->
+  <div class="slide" data-slide="1">
+    <div class="big-number">!</div>
+    <div class="slide-label">The Mandate</div>
+    <div class="slide-title">Why <span class="green">Now</span></div>
+    <ul class="bullets" style="margin-top: 32px;">
+      <li>The market is moving faster than traditional team structures can respond to</li>
+      <li>AI has fundamentally changed what a <strong>small, focused team</strong> can ship</li>
+      <li>The gap between AI-native teams and traditional teams is <strong>widening every month</strong></li>
+      <li>Engineering leadership must evolve — or become a bottleneck</li>
+      <li>We either restructure to capture the opportunity, or we lose it</li>
+    </ul>
+  </div>
+
+  <!-- SLIDE 3: Section — People & Leadership -->
+  <div class="slide section-divider" data-slide="2">
+    <div class="section-part">Part 1</div>
+    <div class="section-title">People &<br><span style="color: var(--green);">Leadership</span></div>
+  </div>
+
+  <!-- SLIDE 4: Leadership Model -->
+  <div class="slide" data-slide="3">
+    <div class="slide-label">Leadership</div>
+    <div class="slide-title md">New Leadership <span class="green">Model</span></div>
+    <div class="slide-subtitle" style="margin-bottom: 24px;">Lead by example</div>
+    <table class="compare-table">
+      <thead>
+        <tr><th>Before</th><th>After</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Managers manage</td><td>Managers build (50%+ IC time)</td></tr>
+        <tr><td>AI is a tool we use</td><td>AI mastery is a job requirement</td></tr>
+        <tr><td>Layers of approval</td><td>Flat, autonomous decision-making</td></tr>
+        <tr><td>Separate management tracks</td><td>Every manager is hands-on</td></tr>
+        <tr><td>Middle management layers</td><td>No middle management — leads and ICs only</td></tr>
+      </tbody>
+    </table>
+    <div class="slide-body" style="margin-top: 32px; font-size: 17px; color: var(--white); font-weight: 500;">
+      If you can't build with AI, you can't lead here.
+    </div>
+  </div>
+
+  <!-- SLIDE 5: The xEngineer -->
+  <div class="slide" data-slide="4">
+    <div class="slide-label">The New Developer</div>
+    <div class="slide-title md">The <span class="green">xEngineer</span></div>
+    <ul class="bullets" style="margin-top: 32px;">
+      <li><strong>xEngineer:</strong> Capable of developing full features end-to-end, not just components</li>
+      <li><strong>From dev to TL:</strong> Each developer holds an agentic team 24/7 — AI agents extend their capacity</li>
+      <li><strong>Buddy Teams:</strong> Developer + UX designer pair up dynamically to own a feature E2E</li>
+      <li><strong>Bigger teams, fewer teams:</strong> TLs manage 7+ xEngineers — the opposite of Amazon's pizza box</li>
+    </ul>
+    <div class="slide-quote" style="margin-top: 40px; font-size: 28px; max-width: 700px;">
+      One xEngineer + agents can do what required a full squad before.
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Creators -->
+  <div class="slide" data-slide="5">
+    <div class="slide-label">Culture</div>
+    <div class="slide-title md">Everyone is a <span class="green">Creator</span></div>
+    <div class="slide-subtitle" style="margin-bottom: 24px;">On top of your core profession ("black belt"), every person adopts a creator mindset.</div>
+    <div class="creator-grid">
+      <div class="creator-item">
+        <div class="creator-role">Data</div>
+        <div class="creator-old">Not just dashboards</div>
+        <div class="creator-new">Creates insights, growth experiments &amp; tools</div>
+      </div>
+      <div class="creator-item">
+        <div class="creator-role">QA</div>
+        <div class="creator-old">Not just test cases</div>
+        <div class="creator-new">Creates quality systems</div>
+      </div>
+      <div class="creator-item">
+        <div class="creator-role">Ops</div>
+        <div class="creator-old">Not just runbooks</div>
+        <div class="creator-new">Creates automated workflows → Agentic management</div>
+      </div>
+    </div>
+    <div style="border: 2px dotted var(--green); border-radius: 12px; padding: 24px 0 0; margin-top: 16px; position: relative; max-width: 840px;">
+      <div style="position: absolute; top: -10px; left: 20px; background: var(--bg); padding: 0 8px; font-size: 11px; color: var(--green); font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Creators</div>
+      <div class="creator-grid" style="margin-top: 0; padding: 0 16px 16px;">
+        <div class="creator-item">
+          <div class="creator-role">UX</div>
+          <div class="creator-old">Not just mockups</div>
+          <div class="creator-new">Creates full experiences</div>
+        </div>
+        <div class="creator-item">
+          <div class="creator-role">Product</div>
+          <div class="creator-old">Not just specs</div>
+          <div class="creator-new">Creates solutions</div>
+        </div>
+        <div class="creator-item">
+          <div class="creator-role">Writers</div>
+          <div class="creator-old">Not just copy</div>
+          <div class="creator-new">Creates content strategies</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Contribution Model -->
+  <div class="slide" data-slide="6">
+    <div class="slide-label">Dependencies</div>
+    <div class="slide-title sm">The <span class="green">Contribution</span> Model</div>
+    <div style="margin-top: 36px;">
+      <div style="font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px;">Before</div>
+      <div class="flow-row bad">
+        <div class="flow-step">Team A needs feature</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step">Files request to Team B</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step">Waits in backlog</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step" style="color: var(--muted);">Months pass</div>
+      </div>
+    </div>
+    <div style="margin-top: 28px;">
+      <div style="font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--green); margin-bottom: 12px;">AI-Native Model</div>
+      <div class="flow-row good">
+        <div class="flow-step">Team A needs feature</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step" style="background: rgba(222,255,154,0.1);">Team A contributes it directly</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step" style="color: var(--green); font-weight: 600;">Done</div>
+      </div>
+    </div>
+    <ul class="bullets" style="margin-top: 32px;">
+      <li>AI tools like <a href="https://octocode.ai/" target="_blank" style="color: var(--green); text-decoration: underline; text-underline-offset: 3px;">Octocode</a> make understanding another team's codebase fast</li>
+      <li>xEngineers are capable of working across boundaries</li>
+      <li>Contribution is a <strong>first-class workflow</strong>, not an exception</li>
+    </ul>
+  </div>
+
+  <!-- SLIDE 8: Section — AI -->
+  <div class="slide section-divider" data-slide="7">
+    <div class="section-part">Part 2</div>
+    <div class="section-title">AI-Native<br><span style="color: var(--green);">Infrastructure</span></div>
+  </div>
+
+  <!-- SLIDE 9: Built on AI -->
+  <div class="slide" data-slide="8">
+    <div class="slide-label">Foundation</div>
+    <div class="slide-title sm">Built <span class="green">on</span> AI, not just<br>using AI</div>
+    <div class="slide-subtitle" style="margin-top: 20px;">A shared AI platform powers all teams equally. This is what makes lean, autonomous teams possible.</div>
+    <div class="org-diagram" style="margin-top: 36px;">
+      <div class="org-row">
+        <div class="org-box"><div class="org-box-title">Team A</div></div>
+        <div class="org-box"><div class="org-box-title">Team B</div></div>
+        <div class="org-box"><div class="org-box-title">Team C</div></div>
+      </div>
+      <div style="display: flex; gap: 200px;">
+        <div class="org-connector"></div>
+        <div class="org-connector"></div>
+        <div class="org-connector"></div>
+      </div>
+      <div class="org-bar" style="max-width: 100%;">
+        <div class="org-bar-title">Shared AI Infrastructure</div>
+        <div class="org-bar-sub">The foundation that makes the entire model work</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: The 5 Pillars -->
+  <div class="slide" data-slide="9">
+    <div class="slide-label">AI Platform Stack</div>
+    <div class="slide-title sm">The <span class="green">5 Pillars</span></div>
+    <div class="pillars">
+      <div class="pillar">
+        <div class="pillar-num">01</div>
+        <div class="pillar-title">The Shield</div>
+        <div class="pillar-body">Self-healing platform. Detects and resolves bugs automatically. Quality at scale.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">02</div>
+        <div class="pillar-title">LaunchPad</div>
+        <div class="pillar-body">AI-driven ideation and feature optimization. From idea to production, fast.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">03</div>
+        <div class="pillar-title">AB Tester</div>
+        <div class="pillar-body">Unified experimentation. Single source of truth. Closed feedback loop with LaunchPad.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">04</div>
+        <div class="pillar-title">PR Reviewer</div>
+        <div class="pillar-body">Automated code review at scale. Consistent quality bar. Every PR, every time.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">05</div>
+        <div class="pillar-title">AI Agents</div>
+        <div class="pillar-body">Day-to-day management by agents. Status, monitoring, reporting — handled automatically.</div>
+      </div>
+    </div>
+    <div class="loop-diagram" style="margin-top: 24px; align-self: center;">
+      <div class="loop-node">LaunchPad</div>
+      <div class="loop-arrow">&rarr; Ideas &rarr;</div>
+      <div class="loop-node">AB Tester</div>
+      <div class="loop-arrow">&rarr; Results &rarr;</div>
+      <div class="loop-node">LaunchPad</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: Professional Standards -->
+  <div class="slide" data-slide="10">
+    <div class="slide-label">Quality</div>
+    <div class="slide-title sm"><span class="green">Guild Masters</span> — Professional Standards</div>
+    <div class="slide-subtitle" style="margin-bottom: 8px;">Cross-team expert roles maintain excellence — without traditional hierarchy.</div>
+    <table class="std-table">
+      <thead>
+        <tr><th>Discipline</th><th>Role</th><th>Scope</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>UX Design</td><td>Guild Master</td><td>Standards, research, design principles across all teams</td></tr>
+        <tr><td>Product</td><td>Guild Master</td><td>Strategic alignment, prioritization frameworks</td></tr>
+        <tr><td>QA</td><td>Guild Master</td><td>Shared test suite, quality bar enforcement</td></tr>
+        <tr><td>Data</td><td>Guild Master</td><td>Experimentation loop, anomaly tracking</td></tr>
+      </tbody>
+    </table>
+    <div class="slide-body" style="margin-top: 24px; font-size: 16px;">
+      <strong style="color: var(--white);">Key principle:</strong> Expert positions, not managerial ones. Each expert also holds a role within a team — it's not a standalone job.
+    </div>
+  </div>
+
+  <!-- SLIDE 12: Closing -->
+  <div class="slide statement" data-slide="11">
+    <div class="slide-label">Engineering Leaders Forum</div>
+    <div class="slide-title sm" style="max-width: 800px; line-height: 1.5;">
+      The AI era demands a new<br><span class="green">leadership model</span>, new <span class="green">team structures</span>,<br>and new <span class="green">ways of building</span>.
+    </div>
+    <div class="slide-subtitle" style="margin-top: 32px; text-align: center;">The question isn't whether to change — it's how fast you can.</div>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav">
+  <div class="nav-counter"><span id="current">1</span> / <span id="total">12</span></div>
+  <button class="nav-btn" id="prev">&larr;</button>
+  <button class="nav-btn" id="next">&rarr;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  document.getElementById('total').textContent = total;
+
+  const menuBtn = document.getElementById('menuBtn');
+  const menuPanel = document.getElementById('menuPanel');
+  const menuOverlay = document.getElementById('menuOverlay');
+  const menuItems = menuPanel.querySelectorAll('[data-go]');
+
+  function toggleMenu(open) {
+    const isOpen = open !== undefined ? open : !menuPanel.classList.contains('open');
+    menuPanel.classList.toggle('open', isOpen);
+    menuOverlay.classList.toggle('open', isOpen);
+    menuBtn.classList.toggle('open', isOpen);
+    menuBtn.textContent = isOpen ? '✕' : '☰';
+    if (isOpen) {
+      const active = menuPanel.querySelector('.menu-item.active, .menu-item-divider.active');
+      if (active) setTimeout(() => active.scrollIntoView({ block: 'center', behavior: 'smooth' }), 100);
+    }
+  }
+
+  function updateMenu() {
+    const slideNum = current + 1;
+    menuItems.forEach(item => {
+      const go = parseInt(item.dataset.go, 10);
+      item.classList.toggle('active', go === slideNum);
+    });
+  }
+
+  menuBtn.addEventListener('click', () => toggleMenu());
+  menuOverlay.addEventListener('click', () => toggleMenu(false));
+
+  menuItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const target = parseInt(item.dataset.go, 10) - 1;
+      goTo(target);
+      toggleMenu(false);
+    });
+  });
+
+  function goTo(n) {
+    if (n < 0 || n >= total) return;
+    const goingForward = n > current;
+    slides[current].classList.remove('active');
+    if (goingForward) slides[current].classList.add('exit-left');
+    else slides[current].classList.remove('exit-left');
+    const prev = slides[current];
+    setTimeout(() => prev.classList.remove('exit-left'), 500);
+    if (!goingForward) slides[n].classList.remove('exit-left');
+    else slides[n].classList.remove('exit-left');
+    slides[n].style.transform = goingForward ? '' : 'translateX(-20px)';
+    void slides[n].offsetWidth;
+    slides[n].style.transform = '';
+    current = n;
+    slides[current].classList.add('active');
+    document.getElementById('current').textContent = current + 1;
+    document.getElementById('progress').style.width = ((current + 1) / total * 100) + '%';
+    history.replaceState(null, '', '#' + (current + 1));
+    updateMenu();
+  }
+
+  document.getElementById('prev').addEventListener('click', () => goTo(current - 1));
+  document.getElementById('next').addEventListener('click', () => goTo(current + 1));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { toggleMenu(false); return; }
+    if (menuPanel.classList.contains('open')) return;
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); goTo(current - 1); }
+    if (e.key === 'Home') goTo(0);
+    if (e.key === 'End') goTo(total - 1);
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) { diff > 0 ? goTo(current + 1) : goTo(current - 1); }
+  });
+
+  const progressEl = document.getElementById('progress');
+  progressEl.style.transition = 'none';
+  const hashVal = parseInt(location.hash.replace('#', ''), 10) || 1;
+  const startSlide = Math.max(0, Math.min(hashVal - 1, total - 1));
+  if (startSlide > 0) goTo(startSlide);
+  progressEl.style.width = ((current + 1) / total * 100) + '%';
+  void progressEl.offsetWidth;
+  progressEl.style.transition = '';
+  updateMenu();
+</script>
+
+</body>
+</html>

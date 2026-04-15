@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{DECK_NAME}} — Access Denied</title>
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #141414;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 48px;
+      text-align: center;
+      max-width: 420px;
+      width: 90%;
+    }
+    .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: #deff9a;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-family: 'Urbanist', sans-serif;
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .message {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+    a {
+      color: #deff9a;
+      text-decoration: none;
+      font-size: 14px;
+      padding: 10px 24px;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    a:hover { background: #1e293b; }
+    .secondary { color: #64748b; border-color: transparent; }
+    .secondary:hover { background: transparent; color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="label">{{DECK_NAME}}</div>
+    <h1>Access Denied</h1>
+    <p class="message">Your Google account is not on the authorized list.<br>Contact the admin to request access.</p>
+    <div class="actions">
+      <a href="/auth/google">Try another account</a>
+      <a href="/logout" class="secondary">Sign out</a>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,1869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Premium 3.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg-card: #141414;
+    --green: #deff9a;
+    --white: #ffffff;
+    --slate: #cbd5e1;
+    --muted: #64748b;
+    --dark-border: #1e1e1e;
+    --font-title: 'Urbanist', sans-serif;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: var(--font-body);
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+  }
+
+  /* ── Slide Container ── */
+  .deck {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 80px 120px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(20px);
+    transition: opacity 0.5s ease, visibility 0.5s ease, transform 0.5s ease;
+    overflow: hidden;
+  }
+
+  .slide.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+  }
+
+  .slide.exit-left {
+    transform: translateX(-20px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slide { transition: none; }
+    .progress { transition: none; }
+    .menu-panel { transition: none; }
+    .menu-overlay { transition: none; }
+    .nav-btn { transition: none; }
+    .menu-btn { transition: none; }
+  }
+
+  .slide.compact {
+    padding: 60px 100px;
+  }
+
+  /* ── Typography ── */
+  .slide-label {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 20px;
+  }
+
+  .slide-title {
+    font-family: var(--font-title);
+    font-weight: 800;
+    font-size: 64px;
+    line-height: 1.1;
+    color: var(--white);
+    margin-bottom: 24px;
+    max-width: 900px;
+  }
+
+  .slide-title .green { color: var(--green); }
+  .slide-title.lg { font-size: 52px; }
+  .slide-title.md { font-size: 48px; }
+  .slide-title.sm { font-size: 44px; }
+
+  .slide-subtitle {
+    font-family: var(--font-body);
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--slate);
+    line-height: 1.6;
+    max-width: 700px;
+  }
+
+  .slide-body {
+    font-family: var(--font-body);
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--slate);
+    line-height: 1.7;
+    max-width: 800px;
+  }
+
+  .slide-quote {
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 42px;
+    line-height: 1.3;
+    color: var(--white);
+    max-width: 800px;
+  }
+
+  /* ── Bullet Lists ── */
+  .bullets {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .bullets li {
+    font-family: var(--font-body);
+    font-size: 19px;
+    font-weight: 400;
+    color: var(--slate);
+    line-height: 1.6;
+    padding-left: 24px;
+    position: relative;
+  }
+
+  .bullets li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  .bullets li strong {
+    color: var(--white);
+    font-weight: 600;
+  }
+
+  /* ── Cards Grid ── */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 40px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--dark-border);
+    border-radius: 16px;
+    padding: 36px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card-label {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--green);
+  }
+
+  .card-title {
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 26px;
+    color: var(--white);
+  }
+
+  .card-body {
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--slate);
+    line-height: 1.6;
+  }
+
+  .card-body li {
+    margin-bottom: 6px;
+    list-style: none;
+    padding-left: 16px;
+    position: relative;
+  }
+
+  .card-body li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--muted);
+  }
+
+  /* ── Comparison Table ── */
+  .compare-table {
+    margin-top: 32px;
+    width: 100%;
+    max-width: 800px;
+    border-collapse: collapse;
+  }
+
+  .compare-table th {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--green);
+    text-align: left;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--dark-border);
+  }
+
+  .compare-table td {
+    font-family: var(--font-body);
+    font-size: 17px;
+    color: var(--slate);
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--dark-border);
+    vertical-align: top;
+  }
+
+  .compare-table td:first-child {
+    color: var(--muted);
+    opacity: 0.7;
+  }
+
+  .compare-table td:last-child {
+    color: var(--white);
+    font-weight: 500;
+  }
+
+  /* ── Org Diagram ── */
+  .org-diagram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    margin-top: 40px;
+    width: 100%;
+  }
+
+  .org-row {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .org-box {
+    background: var(--bg-card);
+    border: 1px solid var(--dark-border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    text-align: center;
+    min-width: 220px;
+    flex: 1;
+    max-width: 280px;
+  }
+
+  .org-box-title {
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+
+  .org-box-sub {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .org-connector {
+    width: 2px;
+    height: 24px;
+    background: var(--green);
+    opacity: 0.4;
+  }
+
+  .org-bar {
+    background: linear-gradient(90deg, var(--green) 0%, #b8ff5a 100%);
+    border-radius: 12px;
+    padding: 20px 40px;
+    text-align: center;
+    width: 100%;
+    max-width: 880px;
+  }
+
+  .org-bar-title {
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--bg);
+  }
+
+  .org-bar-sub {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--bg);
+    opacity: 0.7;
+  }
+
+  /* ── Pillars (AI Stack) ── */
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-top: 40px;
+    width: 100%;
+  }
+
+  .pillar {
+    background: var(--bg-card);
+    border: 1px solid var(--dark-border);
+    border-radius: 12px;
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pillar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--green);
+  }
+
+  .pillar-num {
+    font-family: var(--font-title);
+    font-weight: 800;
+    font-size: 36px;
+    color: var(--green);
+    opacity: 0.3;
+  }
+
+  .pillar-title {
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--white);
+    line-height: 1.3;
+  }
+
+  .pillar-body {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* ── Feedback Loop ── */
+  .loop-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 20px;
+    padding: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--dark-border);
+    border-radius: 12px;
+    max-width: 600px;
+  }
+
+  .loop-node {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--green);
+    padding: 8px 16px;
+    border: 1px solid var(--green);
+    border-radius: 8px;
+    opacity: 0.9;
+  }
+
+  .loop-arrow {
+    color: var(--muted);
+    font-size: 18px;
+  }
+
+  /* ── Standards Table ── */
+  .std-table {
+    margin-top: 32px;
+    width: 100%;
+    max-width: 880px;
+    border-collapse: collapse;
+  }
+
+  .std-table th {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--green);
+    text-align: left;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--dark-border);
+  }
+
+  .std-table td {
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--slate);
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--dark-border);
+  }
+
+  .std-table td:first-child {
+    color: var(--white);
+    font-weight: 600;
+  }
+
+  /* ── Timeline ── */
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 32px;
+    max-width: 700px;
+  }
+
+  .timeline-item {
+    display: flex;
+    gap: 24px;
+    padding: 20px 0;
+    border-left: 2px solid var(--dark-border);
+    padding-left: 32px;
+    position: relative;
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 26px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  .timeline-item.done::before {
+    background: var(--green);
+    box-shadow: 0 0 12px rgba(222, 255, 154, 0.4);
+  }
+
+  .timeline-item.pending::before {
+    background: var(--bg);
+    border: 2px solid var(--muted);
+  }
+
+  .timeline-phase {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--green);
+    min-width: 80px;
+  }
+
+  .timeline-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .timeline-title {
+    font-family: var(--font-body);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--white);
+  }
+
+  .timeline-desc {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* ── Section Divider ── */
+  .slide.section-divider {
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  .section-part {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-family: var(--font-title);
+    font-weight: 800;
+    font-size: 72px;
+    color: var(--white);
+    line-height: 1.1;
+  }
+
+  /* ── Full-screen statement ── */
+  .slide.statement {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 80px 160px;
+  }
+
+  .statement .slide-title {
+    font-size: 56px;
+    max-width: 900px;
+  }
+
+  /* ── Big number accent ── */
+  .big-number {
+    font-family: var(--font-title);
+    font-weight: 900;
+    font-size: 120px;
+    color: var(--green);
+    opacity: 0.15;
+    position: absolute;
+    right: 80px;
+    top: 60px;
+    line-height: 1;
+  }
+
+  /* ── Before / After flow ── */
+  .flow-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0;
+  }
+
+  .flow-step {
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--slate);
+    padding: 8px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--dark-border);
+    border-radius: 8px;
+  }
+
+  .flow-arrow {
+    color: var(--muted);
+    font-size: 16px;
+  }
+
+  .flow-row.bad .flow-step { opacity: 0.5; border-color: #333; }
+  .flow-row.good .flow-step { border-color: var(--green); color: var(--white); }
+  .flow-row.good .flow-arrow { color: var(--green); }
+
+  /* ── Creator grid ── */
+  .creator-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 32px;
+    max-width: 840px;
+  }
+
+  .creator-item {
+    padding: 20px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--dark-border);
+    border-radius: 12px;
+  }
+
+  .creator-role {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--green);
+    margin-bottom: 6px;
+  }
+
+  .creator-old {
+    font-size: 14px;
+    color: var(--muted);
+    text-decoration: line-through;
+    margin-bottom: 4px;
+  }
+
+  .creator-new {
+    font-size: 15px;
+    color: var(--white);
+    font-weight: 500;
+  }
+
+  /* ── Leadership Grid ── */
+  .leadership-grid {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr 1fr 1fr;
+    gap: 0;
+    margin-top: 36px;
+    width: 100%;
+    max-width: 1050px;
+  }
+
+  .lg-cell {
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--slate);
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--dark-border);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .lg-cell.header {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--green);
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--green);
+  }
+
+  .lg-cell.role-label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    align-self: center;
+    justify-content: center;
+  }
+
+  .lg-name {
+    font-weight: 600;
+    color: var(--white);
+    font-size: 16px;
+  }
+
+  .lg-detail {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .lg-tl-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .lg-tl-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .lg-tl-name {
+    font-weight: 600;
+    color: var(--white);
+    font-size: 15px;
+  }
+
+  .lg-tl-scope {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .lg-tl-tbd {
+    font-weight: 500;
+    color: var(--muted);
+    font-style: italic;
+    font-size: 14px;
+  }
+
+  /* ── Hierarchy Tree ── */
+  .hierarchy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    margin-top: 36px;
+    width: 100%;
+  }
+
+  .h-node {
+    background: var(--bg-card);
+    border: 1px solid var(--dark-border);
+    border-radius: 12px;
+    padding: 16px 24px;
+    text-align: center;
+    position: relative;
+    min-width: 100px;
+  }
+
+  .h-node.root {
+    border-color: var(--green);
+    padding: 24px 48px;
+  }
+
+  .h-node-role {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 4px;
+  }
+
+  .h-node-name {
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--white);
+  }
+
+  .h-node-scope {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .h-connector {
+    width: 2px;
+    height: 20px;
+    background: var(--dark-border);
+    margin: 0 auto;
+  }
+
+  .h-branch {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    position: relative;
+  }
+
+  .h-branch::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 1px;
+    background: var(--dark-border);
+  }
+
+  .h-branch-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .h-branch-connector {
+    width: 2px;
+    height: 20px;
+    background: var(--dark-border);
+  }
+
+  .h-row {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: nowrap;
+  }
+
+  /* ── Navigation ── */
+  .nav {
+    position: fixed;
+    bottom: 32px;
+    right: 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 100;
+  }
+
+  .nav-counter {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .nav-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--dark-border);
+    background: var(--bg-card);
+    color: var(--slate);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .nav-btn:hover, .nav-btn:focus-visible {
+    border-color: var(--green);
+    color: var(--green);
+    outline: none;
+  }
+
+  /* ── Menu ── */
+  .menu-btn {
+    position: fixed;
+    bottom: 32px;
+    left: 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--dark-border);
+    background: var(--bg-card);
+    color: var(--slate);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    z-index: 170;
+  }
+  .menu-btn:hover, .menu-btn:focus-visible { border-color: var(--green); color: var(--green); outline: none; }
+  .menu-btn.open { border-color: var(--green); color: var(--green); }
+
+  .menu-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 150;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+  .menu-overlay.open { opacity: 1; visibility: visible; }
+
+  .menu-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 320px;
+    background: var(--bg-card);
+    border-right: 1px solid var(--dark-border);
+    z-index: 160;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+    padding: 32px 0;
+  }
+  .menu-panel.open { transform: translateX(0); }
+
+  .menu-panel::-webkit-scrollbar { width: 4px; }
+  .menu-panel::-webkit-scrollbar-track { background: transparent; }
+  .menu-panel::-webkit-scrollbar-thumb { background: var(--dark-border); border-radius: 2px; }
+
+  .menu-header {
+    font-family: var(--font-title);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 0 24px 16px;
+    border-bottom: 1px solid var(--dark-border);
+    margin-bottom: 8px;
+  }
+
+  .menu-section {
+    padding: 12px 24px 4px;
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-left: 3px solid transparent;
+  }
+  .menu-item:hover, .menu-item:focus-visible { background: rgba(222,255,154,0.05); outline: none; }
+  .menu-item.active {
+    background: rgba(222,255,154,0.08);
+    border-left-color: var(--green);
+  }
+
+  .menu-item-num {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    min-width: 22px;
+  }
+  .menu-item.active .menu-item-num { color: var(--green); }
+
+  .menu-item-title {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--slate);
+  }
+  .menu-item.active .menu-item-title { color: var(--white); font-weight: 600; }
+
+  .menu-item-divider {
+    padding: 10px 24px;
+    font-family: var(--font-title);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--green);
+    opacity: 0.6;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .menu-item-divider:hover { opacity: 1; background: rgba(222,255,154,0.05); }
+  .menu-item-divider.active { opacity: 1; border-left-color: var(--green); }
+
+  /* ── Progress bar ── */
+  .progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: var(--green);
+    transition: width 0.4s ease;
+    z-index: 100;
+  }
+
+  /* ══════════════════════════════════════════════════════════ */
+  /* ── MOBILE RESPONSIVE ── */
+  /* ══════════════════════════════════════════════════════════ */
+
+  /* Tablet (≤1024px) */
+  @media (max-width: 1024px) {
+    .slide { padding: 60px 64px; }
+    .slide.compact { padding: 48px 48px; }
+    .slide.statement { padding: 60px 64px; }
+    .slide-title { font-size: 52px; }
+    .slide-title.lg { font-size: 44px; }
+    .slide-title.md { font-size: 40px; }
+    .slide-title.sm { font-size: 36px; }
+    .statement .slide-title { font-size: 44px; }
+    .section-title { font-size: 56px; }
+    .big-number { font-size: 90px; right: 48px; top: 40px; }
+
+    .pillars { grid-template-columns: repeat(3, 1fr); }
+    .pillar:nth-child(4), .pillar:nth-child(5) {
+      grid-column: span 1;
+    }
+
+    .org-box { min-width: 160px; padding: 20px 24px; }
+    .org-box-title { font-size: 17px; }
+
+    .h-node { padding: 12px 16px; }
+    .h-node.root { padding: 16px 28px; }
+    .h-node-name { font-size: 17px; }
+    .h-row { gap: 10px; flex-wrap: wrap; }
+  }
+
+  /* Mobile (≤768px) */
+  @media (max-width: 768px) {
+    .slide {
+      padding: 40px 28px 72px;
+      justify-content: flex-start;
+      padding-top: 64px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .slide.compact { padding: 36px 24px 72px; padding-top: 64px; }
+    .slide.statement {
+      padding: 40px 28px 72px;
+      justify-content: center;
+    }
+    .slide.section-divider {
+      padding: 40px 28px;
+      justify-content: center;
+    }
+
+    /* Typography scaling */
+    .slide-title { font-size: 36px; margin-bottom: 16px; }
+    .slide-title.lg { font-size: 32px; }
+    .slide-title.md { font-size: 30px; }
+    .slide-title.sm { font-size: 28px; }
+    .statement .slide-title { font-size: 30px; }
+    .slide-subtitle { font-size: 17px; max-width: 100%; }
+    .slide-body { font-size: 15px; }
+    .slide-label { font-size: 11px; letter-spacing: 2px; margin-bottom: 12px; }
+    .slide-quote { font-size: 24px; }
+    .section-title { font-size: 44px; }
+    .section-part { font-size: 12px; }
+    .big-number { font-size: 64px; right: 20px; top: 28px; }
+
+    /* Bullets */
+    .bullets { gap: 12px; }
+    .bullets li { font-size: 16px; padding-left: 20px; }
+    .bullets li::before { width: 6px; height: 6px; }
+
+    /* Cards: stack vertically */
+    .cards { grid-template-columns: 1fr; gap: 16px; margin-top: 24px; }
+    .card { padding: 24px 20px; }
+    .card-title { font-size: 22px; }
+    .card-body { font-size: 14px; }
+
+    /* Comparison table */
+    .compare-table { margin-top: 20px; }
+    .compare-table th { font-size: 10px; padding: 8px 12px; }
+    .compare-table td { font-size: 14px; padding: 10px 12px; }
+
+    /* Org diagram */
+    .org-diagram { gap: 16px; margin-top: 24px; }
+    .org-row { flex-direction: column; align-items: center; gap: 12px; }
+    .org-box { min-width: unset; max-width: 100%; width: 100%; padding: 16px 20px; }
+    .org-box-title { font-size: 18px; }
+    .org-bar { padding: 14px 20px; }
+    .org-bar-title { font-size: 15px; }
+    .org-bar-sub { font-size: 11px; }
+    .org-connector { height: 16px; }
+
+    /* Hierarchy nodes */
+    .h-node { padding: 10px 14px; min-width: 70px; }
+    .h-node.root { padding: 14px 20px; }
+    .h-node-role { font-size: 9px; letter-spacing: 1px; }
+    .h-node-name { font-size: 15px; }
+    .h-node-scope { font-size: 10px; }
+    .h-connector { height: 14px; }
+    .h-row { gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+    /* Hierarchy slides: two-column → stacked */
+    .slide.compact [style*="display: flex; gap: 48px"] {
+      flex-direction: column !important;
+      gap: 24px !important;
+      align-items: center !important;
+    }
+    .slide.compact [style*="width: 1px; background: var(--dark-border); margin: 0 8px"] {
+      width: 60% !important;
+      height: 1px !important;
+      margin: 0 auto !important;
+    }
+
+    /* Pillars: 2 columns on mobile */
+    .pillars { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 24px; }
+    .pillar { padding: 20px 16px; }
+    .pillar-num { font-size: 28px; }
+    .pillar-title { font-size: 15px; }
+    .pillar-body { font-size: 12px; }
+
+    /* Loop diagram */
+    .loop-diagram { gap: 8px; padding: 14px; flex-wrap: wrap; justify-content: center; }
+    .loop-node { font-size: 12px; padding: 6px 10px; }
+    .loop-arrow { font-size: 14px; }
+
+    /* Standards table */
+    .std-table th { font-size: 10px; padding: 8px 10px; }
+    .std-table td { font-size: 13px; padding: 10px 10px; }
+
+    /* Flow rows: wrap on mobile */
+    .flow-row { flex-wrap: wrap; gap: 8px; }
+    .flow-step { font-size: 13px; padding: 6px 12px; }
+    .flow-arrow { font-size: 14px; }
+
+    /* Creator grid: 1 column */
+    .creator-grid { grid-template-columns: 1fr; gap: 10px; margin-top: 16px; max-width: 100%; }
+    .creator-item { padding: 14px 18px; }
+    .creator-role { font-size: 12px; }
+    .creator-old { font-size: 12px; }
+    .creator-new { font-size: 13px; }
+
+    /* Navigation */
+    .nav { bottom: 16px; right: 16px; gap: 10px; }
+    .nav-btn { width: 36px; height: 36px; font-size: 16px; }
+    .nav-counter { font-size: 11px; }
+
+    /* Menu — top-left on mobile */
+    .menu-btn { top: 16px; bottom: auto; left: 16px; width: 36px; height: 36px; font-size: 16px; }
+    .menu-panel { width: 280px; padding: 24px 0; }
+    .menu-header { font-size: 12px; padding: 0 20px 12px; }
+    .menu-item { padding: 8px 20px; }
+    .menu-item-title { font-size: 12px; }
+    .menu-item-num { font-size: 10px; }
+    .menu-section { padding: 10px 20px 4px; font-size: 9px; }
+    .menu-item-divider { padding: 8px 20px; font-size: 11px; }
+  }
+
+  /* Small phone (≤420px) */
+  @media (max-width: 420px) {
+    .slide { padding: 32px 20px 68px; padding-top: 60px; }
+    .slide.compact { padding: 28px 16px 68px; padding-top: 60px; }
+    .slide.statement { padding: 32px 20px 68px; }
+
+    .slide-title { font-size: 28px; }
+    .slide-title.lg { font-size: 26px; }
+    .slide-title.md { font-size: 25px; }
+    .slide-title.sm { font-size: 24px; }
+    .statement .slide-title { font-size: 24px; }
+    .section-title { font-size: 36px; }
+    .slide-subtitle { font-size: 15px; }
+    .big-number { font-size: 48px; right: 16px; top: 20px; }
+
+    .bullets li { font-size: 14px; line-height: 1.5; }
+
+    /* Pillars: single column on very small */
+    .pillars { grid-template-columns: 1fr; }
+
+    /* Flow: vertical on small */
+    .flow-row { flex-direction: column; align-items: flex-start; }
+    .flow-arrow { transform: rotate(90deg); align-self: center; }
+
+    /* Tables: hide Role column on very small */
+    .std-table td:nth-child(2), .std-table th:nth-child(2) { display: none; }
+
+    .h-node.root { padding: 12px 16px; }
+    .h-node-name { font-size: 14px; }
+    .h-row { gap: 6px; }
+    .h-node { padding: 8px 10px; min-width: 60px; }
+
+    .org-box-title { font-size: 16px; }
+    .menu-panel { width: 260px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<!-- ── Menu ── -->
+<button class="menu-btn" id="menuBtn" title="Menu">☰</button>
+<div class="menu-overlay" id="menuOverlay"></div>
+<div class="menu-panel" id="menuPanel">
+  <div class="menu-header">Premium 3.0</div>
+
+  <div class="menu-section">Opening</div>
+  <div class="menu-item" data-go="1"><span class="menu-item-num">1</span><span class="menu-item-title">Premium 3.0</span></div>
+  <div class="menu-item" data-go="2"><span class="menu-item-num">2</span><span class="menu-item-title">Why Now</span></div>
+  <div class="menu-item" data-go="3"><span class="menu-item-num">3</span><span class="menu-item-title">Premium 2.0</span></div>
+
+  <div class="menu-section">The 3 Companies</div>
+  <div class="menu-item" data-go="4"><span class="menu-item-num">4</span><span class="menu-item-title">The Core Idea</span></div>
+  <div class="menu-item" data-go="5"><span class="menu-item-num">5</span><span class="menu-item-title">Why 3 Companies</span></div>
+  <div class="menu-item" data-go="6"><span class="menu-item-num">6</span><span class="menu-item-title">The New Structure</span></div>
+  <div class="menu-item" data-go="7"><span class="menu-item-num">7</span><span class="menu-item-title">Premium Platform</span></div>
+  <div class="menu-item" data-go="8"><span class="menu-item-num">8</span><span class="menu-item-title">Wix Domains</span></div>
+  <div class="menu-item" data-go="9"><span class="menu-item-num">9</span><span class="menu-item-title">Premium Growth</span></div>
+
+  <div class="menu-item-divider" data-go="10">People & Leadership</div>
+  <div class="menu-item" data-go="11"><span class="menu-item-num">11</span><span class="menu-item-title">New Leadership Model</span></div>
+  <div class="menu-item" data-go="12"><span class="menu-item-num">12</span><span class="menu-item-title">The xEngineer</span></div>
+  <div class="menu-item" data-go="13"><span class="menu-item-num">13</span><span class="menu-item-title">Everyone is a Creator</span></div>
+  <div class="menu-item" data-go="14"><span class="menu-item-num">14</span><span class="menu-item-title">Contribution Model</span></div>
+
+  <div class="menu-item-divider" data-go="15">AI-Native Company</div>
+  <div class="menu-item" data-go="16"><span class="menu-item-num">16</span><span class="menu-item-title">Built on AI</span></div>
+  <div class="menu-item" data-go="17"><span class="menu-item-num">17</span><span class="menu-item-title">The 5 Pillars</span></div>
+  <div class="menu-item" data-go="18"><span class="menu-item-num">18</span><span class="menu-item-title">Professional Standards</span></div>
+
+  <div class="menu-section">Closing</div>
+  <div class="menu-item" data-go="19"><span class="menu-item-num">19</span><span class="menu-item-title">What Stays the Same</span></div>
+  <div class="menu-item" data-go="20"><span class="menu-item-num">20</span><span class="menu-item-title">Closing Quote</span></div>
+</div>
+
+<div class="deck" id="deck">
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 1: Title -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide statement active" data-slide="0">
+    <div class="slide-label">Confidential</div>
+    <div class="slide-title">PREMIUM <span class="green">3.0</span></div>
+    <div class="slide-subtitle" style="text-align:center; margin-top: 12px;">The Next Evolution of Premium Services</div>
+    <div style="margin-top: 48px; font-size: 15px; color: var(--muted);">Itay Shmool &middot; 2026</div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 2: Why Now -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="1">
+    <div class="big-number">!</div>
+    <div class="slide-label">The Mandate</div>
+    <div class="slide-title">Why <span class="green">Now</span></div>
+    <ul class="bullets" style="margin-top: 32px;">
+      <li>The market is moving faster than our current structure can respond to</li>
+      <li><strong>Domains are exploding</strong> — both in the WIX.COM funnel and the Storefront funnel</li>
+      <li>AI has fundamentally changed what a small, focused team can ship</li>
+      <li>The Premium 2.0 split was the prerequisite — this is the next step</li>
+      <li>We either restructure to capture the opportunity, or we lose it</li>
+    </ul>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 3: What We've Achieved -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="2">
+    <div class="slide-label">Where We've Been</div>
+    <div class="slide-title">Premium <span class="green">2.0</span></div>
+    <ul class="bullets" style="margin-top: 32px;">
+      <li>The Business &amp; Platform split gave us clearer ownership and accountability</li>
+      <li>From creators mindset to day2day real production</li>
+      <li>We built foundational AI tools: <strong>LaunchPad</strong>, <strong>AB Tester</strong>, <strong>The Shield</strong></li>
+      <li>This foundation makes the next leap possible</li>
+      <li><strong>Premium 2.0 was step 1</strong> — Premium 3.0 is the destination</li>
+    </ul>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 4: The Core Idea -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide statement" data-slide="3">
+    <div class="slide-label">The Core Idea</div>
+    <div class="slide-title lg">One Premium becomes<br><span class="green">three companies.</span></div>
+    <div class="cards" style="margin-top: 48px; max-width: 900px;">
+      <div class="card" style="text-align: center;">
+        <div class="card-label">Company 1</div>
+        <div class="card-title">Wix Domains</div>
+        <div class="card-body">Capture the domains opportunity</div>
+      </div>
+      <div class="card" style="text-align: center;">
+        <div class="card-label">Company 2</div>
+        <div class="card-title">Premium Platform</div>
+        <div class="card-body">The infrastructure backbone</div>
+      </div>
+      <div class="card" style="text-align: center;">
+        <div class="card-label">Company 3</div>
+        <div class="card-title">Premium Growth</div>
+        <div class="card-body">WIX's monetization, Google, resellers</div>
+      </div>
+    </div>
+    <div class="slide-subtitle" style="text-align: center; margin-top: 32px;">Each company: autonomous, fast, AI-native.</div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 5: Why 3 Companies -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="4">
+    <div class="slide-label">Rationale</div>
+    <div class="slide-title md">Why <span class="green">3</span> Companies</div>
+    <div class="cards" style="margin-top: 32px;">
+      <div class="card">
+        <div class="card-label">Domains</div>
+        <div class="card-title">Wix Domains</div>
+        <div class="card-body">
+          <ul>
+            <li>Growth explosion — deserves a dedicated, world-class team</li>
+            <li>Full ownership of the domains funnel, E2E</li>
+            <li>Speed to capitalize before the window closes</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Infrastructure</div>
+        <div class="card-title">Premium Platform</div>
+        <div class="card-body">
+          <ul>
+            <li>Billing, purchase, delivery — the critical layer</li>
+            <li>Stability and reliability at scale</li>
+            <li>Shared backbone for the other two companies and WIX's verticals</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Revenue</div>
+        <div class="card-title">Premium Growth</div>
+        <div class="card-body">
+          <ul>
+            <li>Focused on business growth &amp; conversion</li>
+            <li>Owns the levers that drive Premium revenue</li>
+            <li>Rapid iteration powered by AI. Owns the "LaunchPad Growth Engine" machine cross Premium</li>
+            <li>Owns Google's reseller product ~200M a year value</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 6: The New Structure -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="5">
+    <div class="slide-label">Structure</div>
+    <div class="slide-title md">The New <span class="green">Structure</span></div>
+    <div class="org-diagram">
+      <div class="org-row">
+        <div class="org-box" style="padding: 40px 32px; min-width: 260px; max-width: 320px;">
+          <div class="org-box-title" style="font-size: 24px;">Wix Domains</div>
+        </div>
+        <div class="org-box" style="padding: 40px 32px; min-width: 260px; max-width: 320px;">
+          <div class="org-box-title" style="font-size: 24px;">Premium Platform</div>
+        </div>
+        <div class="org-box" style="padding: 40px 32px; min-width: 260px; max-width: 320px;">
+          <div class="org-box-title" style="font-size: 24px;">Premium Growth</div>
+        </div>
+      </div>
+      <div class="org-connector"></div>
+      <div style="border: 1px solid var(--green); border-radius: 8px; padding: 10px 40px; text-align: center; width: 100%; max-width: 880px; opacity: 0.7;">
+        <div style="font-family: var(--font-body); font-size: 13px; font-weight: 600; color: var(--green); letter-spacing: 1px;">Premium AI Labs <span style="color: var(--muted); font-weight: 400;">&middot; Small cross-company team &middot; Dynamic staffing</span></div>
+      </div>
+    </div>
+    <ul class="bullets" style="margin-top: 32px; max-width: 700px; align-self: center;">
+      <li>Each company led by a <strong>Head Of</strong></li>
+      <li>No middle management — Heads Of and TLs only</li>
+      <li>Premium AI Labs: small cross-company team, dynamic allocation</li>
+    </ul>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 7: Platform Structure -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide compact" data-slide="6">
+    <div class="slide-label">Company 1</div>
+    <div class="slide-title sm">Premium <span class="green">Platform</span></div>
+
+    <!-- Two-column hierarchy -->
+    <div style="display: flex; gap: 48px; margin-top: 36px; width: 100%; justify-content: center;">
+
+      <!-- Dana's branch (Business) -->
+      <div style="display: flex; flex-direction: column; align-items: center; flex: 1; max-width: 320px;">
+        <div class="h-node root">
+          <div class="h-node-name">Dana</div>
+        </div>
+        <div class="h-connector"></div>
+        <div style="display: flex; gap: 16px;">
+          <div class="h-node">
+            <div class="h-node-role">Head of Creation</div>
+            <div class="h-node-name">Yael Levy</div>
+          </div>
+          <div class="h-node">
+            <div class="h-node-role">Data Lead</div>
+            <div class="h-node-name">Bar</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div style="width: 1px; background: var(--dark-border); margin: 0 8px;"></div>
+
+      <!-- Kovach's branch (Tech) -->
+      <div style="display: flex; flex-direction: column; align-items: center; flex: 2; max-width: 600px;">
+        <div class="h-node root">
+          <div class="h-node-name">Kovach</div>
+        </div>
+        <div class="h-connector"></div>
+        <div style="font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px;">Dev Team Leads</div>
+        <div class="h-row">
+          <div class="h-node">
+            <div class="h-node-name">Roi Ash</div>
+            <div class="h-node-scope">Billing</div>
+          </div>
+          <div class="h-node">
+            <div class="h-node-name">Talya</div>
+            <div class="h-node-scope">Dynamic</div>
+          </div>
+          <div class="h-node">
+            <div class="h-node-name">Omri Magen</div>
+            <div class="h-node-scope">PPP</div>
+          </div>
+          <div class="h-node">
+            <div class="h-node-name">Liad</div>
+            <div class="h-node-scope">Data (cross)</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 8: Domains Structure -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide compact" data-slide="7">
+    <div class="slide-label">Company 2</div>
+    <div class="slide-title sm">Wix <span class="green">Domains</span></div>
+
+    <!-- Hierarchy -->
+    <div style="display: flex; flex-direction: column; align-items: center; margin-top: 36px; width: 100%;">
+
+      <!-- Top row: Ayelet + Idan side by side -->
+      <div style="display: flex; align-items: stretch; gap: 12px;">
+        <div class="h-node root" style="border-style: dashed; width: 180px;">
+          <div class="h-node-name">Ayelet Bergman</div>
+          <div class="h-node-scope">Temp</div>
+        </div>
+        <div style="width: 1px; background: var(--dark-border);"></div>
+        <div class="h-node root" style="width: 180px; display: flex; flex-direction: column; justify-content: center;">
+          <div class="h-node-name">Idan</div>
+        </div>
+      </div>
+      <div class="h-connector"></div>
+
+      <div class="h-row">
+          <div class="h-node">
+            <div class="h-node-role">Head of Creation</div>
+            <div class="h-node-name">Inbal Geva</div>
+          </div>
+          <div class="h-node">
+            <div class="h-node-role">Data Lead</div>
+            <div class="h-node-name">Dolev</div>
+          </div>
+          <div class="h-node">
+            <div class="h-node-role">Dev TL</div>
+            <div class="h-node-name">Or Efrat</div>
+            <div class="h-node-scope">Team 1</div>
+          </div>
+          <div class="h-node">
+            <div class="h-node-role">Dev TL</div>
+            <div class="h-node-name">Or R.</div>
+            <div class="h-node-scope">Team 2</div>
+          </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 9: Growth Structure -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide compact" data-slide="8">
+    <div class="slide-label">Company 3</div>
+    <div class="slide-title sm">Premium <span class="green">Growth</span></div>
+
+    <div style="display: flex; gap: 48px; margin-top: 36px; width: 100%; justify-content: center;">
+      <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+        <div class="h-node root">
+          <div class="h-node-name">Shmool</div>
+        </div>
+        <div class="h-connector"></div>
+        <div class="h-row">
+          <div class="h-node">
+            <div class="h-node-role">Head of Creation</div>
+            <div class="h-node-name">Efrat</div>
+          </div>
+          <div class="h-node">
+            <div class="h-node-role">Data Lead</div>
+            <div class="h-node-name">Yael Arama</div>
+          </div>
+          <div class="h-node">
+            <div class="h-node-role">Dev Lead</div>
+            <div class="h-node-name">Israel Z</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 10: Section — People -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide section-divider" data-slide="9">
+    <div class="section-part">Part 1</div>
+    <div class="section-title">People &<br><span style="color: var(--green);">Leadership</span></div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 8: Leadership Model -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="10">
+    <div class="slide-label">Leadership</div>
+    <div class="slide-title md">New Leadership <span class="green">Model</span></div>
+    <div class="slide-subtitle" style="margin-bottom: 24px;">Lead by example</div>
+    <table class="compare-table">
+      <thead>
+        <tr><th>Before</th><th>After</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Managers manage</td><td>Managers build (50%+ IC time)</td></tr>
+        <tr><td>AI is a tool we use</td><td>AI mastery is a job requirement</td></tr>
+        <tr><td>Layers of approval</td><td>Flat, autonomous decision-making</td></tr>
+        <tr><td>Separate management tracks</td><td>Every manager is hands-on</td></tr>
+      </tbody>
+    </table>
+    <div class="slide-body" style="margin-top: 32px; font-size: 17px; color: var(--white); font-weight: 500;">
+      If you can't build with AI, you can't lead here.
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 9: The xEngineer -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="11">
+    <div class="slide-label">The New Developer</div>
+    <div class="slide-title md">The <span class="green">xEngineer</span></div>
+    <ul class="bullets" style="margin-top: 32px;">
+      <li><strong>xEngineer:</strong> Capable of developing full features end-to-end, not just components</li>
+      <li><strong>From dev to TL:</strong> Each developer holds an agentic team 24/7 — AI agents extend their capacity</li>
+      <li><strong>Buddy Teams:</strong> Developer + UX designer pair up dynamically to own a feature E2E</li>
+      <li><strong>Bigger teams, fewer teams:</strong> TLs manage 7+ xEngineers — the opposite of Amazon's pizza box</li>
+    </ul>
+    <div class="slide-quote" style="margin-top: 40px; font-size: 28px; max-width: 700px;">
+      One xEngineer + agents can do what required a full squad before.
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 10: Creators & Builders -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="12">
+    <div class="slide-label">Culture</div>
+    <div class="slide-title md">Everyone is a <span class="green">Creator</span></div>
+    <div class="slide-subtitle" style="margin-bottom: 24px;">On top of your core profession ("black belt"), every person adopts a creator mindset.</div>
+    <div class="creator-grid">
+      <div class="creator-item">
+        <div class="creator-role">Data</div>
+        <div class="creator-old">Not just dashboards</div>
+        <div class="creator-new">Creates insights, growth experiments &amp; tools (AB Tester)</div>
+      </div>
+      <div class="creator-item">
+        <div class="creator-role">QA</div>
+        <div class="creator-old">Not just test cases</div>
+        <div class="creator-new">Creates quality systems</div>
+      </div>
+      <div class="creator-item">
+        <div class="creator-role">Ops</div>
+        <div class="creator-old">Not just runbooks</div>
+        <div class="creator-new">Creates automated workflows → Agentic management</div>
+      </div>
+    </div>
+    <div style="border: 2px dotted var(--green); border-radius: 12px; padding: 24px 0 0; margin-top: 16px; position: relative; max-width: 840px;">
+      <div style="position: absolute; top: -10px; left: 20px; background: var(--bg); padding: 0 8px; font-size: 11px; color: var(--green); font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Creators</div>
+      <div class="creator-grid" style="margin-top: 0; padding: 0 16px 16px;">
+        <div class="creator-item">
+          <div class="creator-role">UX</div>
+          <div class="creator-old">Not just mockups</div>
+          <div class="creator-new">Creates full experiences</div>
+        </div>
+        <div class="creator-item">
+          <div class="creator-role">Product</div>
+          <div class="creator-old">Not just specs</div>
+          <div class="creator-new">Creates solutions</div>
+        </div>
+        <div class="creator-item">
+          <div class="creator-role">Writers</div>
+          <div class="creator-old">Not just copy</div>
+          <div class="creator-new">Creates content strategies</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 11: Contribution Model -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="13">
+    <div class="slide-label">Dependencies</div>
+    <div class="slide-title sm">The <span class="green">Contribution</span> Model</div>
+    <div style="margin-top: 36px;">
+      <div style="font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px;">Before</div>
+      <div class="flow-row bad">
+        <div class="flow-step">Domains needs feature</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step">Files request</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step">Waits in backlog</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step" style="color: var(--muted);">Months pass</div>
+      </div>
+    </div>
+    <div style="margin-top: 28px;">
+      <div style="font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--green); margin-bottom: 12px;">Premium 3.0</div>
+      <div class="flow-row good">
+        <div class="flow-step">Domains needs feature</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step" style="background: rgba(222,255,154,0.1);">Domains contributes it directly</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-step" style="color: var(--green); font-weight: 600;">Done</div>
+      </div>
+    </div>
+    <ul class="bullets" style="margin-top: 32px;">
+      <li>AI tools (Octocode, CDD, agents) make understanding another codebase fast</li>
+      <li>xEngineers are capable of working across boundaries</li>
+      <li>Contribution is a <strong>first-class workflow</strong>, not an exception</li>
+    </ul>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 12: Section — AI -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide section-divider" data-slide="14">
+    <div class="section-part">Part 2</div>
+    <div class="section-title">AI-Native<br><span style="color: var(--green);">Company</span></div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 13: AI-Native Concept -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="15">
+    <div class="slide-label">Foundation</div>
+    <div class="slide-title sm">Built <span class="green">on</span> AI, not just<br>using AI</div>
+    <div class="slide-subtitle" style="margin-top: 20px;">One shared AI platform powers all 3 companies equally. This is what makes 3 lean, autonomous companies possible.</div>
+    <div class="org-diagram" style="margin-top: 36px;">
+      <div class="org-row">
+        <div class="org-box">
+          <div class="org-box-title">Wix Domains</div>
+        </div>
+        <div class="org-box">
+          <div class="org-box-title">Premium Platform</div>
+        </div>
+        <div class="org-box">
+          <div class="org-box-title">Premium Growth</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 200px;">
+        <div class="org-connector"></div>
+        <div class="org-connector"></div>
+        <div class="org-connector"></div>
+      </div>
+      <div class="org-bar" style="max-width: 100%;">
+        <div class="org-bar-title">Shared AI Infrastructure</div>
+        <div class="org-bar-sub">The foundation that makes the entire model work</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 14: The 5 Pillars -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="16">
+    <div class="slide-label">AI Platform Stack</div>
+    <div class="slide-title sm">The <span class="green">5 Pillars</span></div>
+    <div class="pillars">
+      <div class="pillar">
+        <div class="pillar-num">01</div>
+        <div class="pillar-title">The Shield</div>
+        <div class="pillar-body">Self-healing platform. Detects and resolves support bugs automatically. Quality at scale.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">02</div>
+        <div class="pillar-title">LaunchPad</div>
+        <div class="pillar-body">The growth engine. AI-driven ideation and feature optimization. From idea to production, fast.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">03</div>
+        <div class="pillar-title">AB Tester</div>
+        <div class="pillar-body">Unified experimentation. Single source of truth. Closed feedback loop with LaunchPad.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">04</div>
+        <div class="pillar-title">PR Reviewer</div>
+        <div class="pillar-body">Automated code review at scale. Consistent quality bar across all 3 companies. Every PR, every time.</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">05</div>
+        <div class="pillar-title">AI Agents</div>
+        <div class="pillar-body">Day-to-day management by agents. Status, production, reporting — handled automatically.</div>
+      </div>
+    </div>
+    <div class="loop-diagram" style="margin-top: 24px; align-self: center;">
+      <div class="loop-node">LaunchPad</div>
+      <div class="loop-arrow">&rarr; Ideas &rarr;</div>
+      <div class="loop-node">AB Tester</div>
+      <div class="loop-arrow">&rarr; Results &rarr;</div>
+      <div class="loop-node">LaunchPad</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 15: Professional Standards -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="17">
+    <div class="slide-label">Quality</div>
+    <div class="slide-title sm">Professional <span class="green">Standards</span></div>
+    <div class="slide-subtitle" style="margin-bottom: 8px;">Cross-company expert roles maintain excellence — without traditional hierarchy.</div>
+    <table class="std-table">
+      <thead>
+        <tr><th>Discipline</th><th>Role</th><th>Scope</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>UX Design</td><td>Guild Master</td><td>Standards, research, design principles across all companies</td></tr>
+        <tr><td>Product</td><td>Guild Master</td><td>Strategic alignment, prioritization frameworks</td></tr>
+        <tr><td>QA</td><td>Guild Master</td><td>Shared test suite, quality bar enforcement</td></tr>
+        <tr><td>Data</td><td>Guild Master</td><td>AB Tester &amp; LaunchPad loop, anomaly tracking (Zik)</td></tr>
+
+      </tbody>
+    </table>
+    <div class="slide-body" style="margin-top: 24px; font-size: 16px;">
+      <strong style="color: var(--white);">Key principle:</strong> Expert positions, not managerial ones. Each expert also holds a role within one of the 3 companies.
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 16: What Stays the Same -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide" data-slide="18">
+    <div class="slide-label">Continuity</div>
+    <div class="slide-title md">What Stays the <span class="green">Same</span></div>
+    <ul class="bullets" style="margin-top: 32px;">
+      <li>Our commitment to building <strong>world-class Premium products</strong></li>
+      <li>Investment in <strong>people and professional growth</strong></li>
+      <li>Team culture and collaboration</li>
+      <li>High quality bar — now enforced by <strong>AI + experts</strong> instead of layers</li>
+      <li>Your core profession and expertise — it gets <strong>amplified</strong>, not replaced</li>
+
+    </ul>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SLIDE 20: Closing Quote -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="slide statement" data-slide="19">
+    <div class="slide-label">Premium 3.0</div>
+    <div class="slide-title sm" style="max-width: 800px; line-height: 1.5;">
+      Change is in structure and speed.<br>
+      Not in our <span class="green">values</span>, <span class="green">people growth</span><br>and our unique <span class="green">premium spirit</span> 💃
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Navigation ── -->
+<div class="nav">
+  <div class="nav-counter"><span id="current">1</span> / <span id="total">21</span></div>
+  <button class="nav-btn" id="prev">&larr;</button>
+  <button class="nav-btn" id="next">&rarr;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  document.getElementById('total').textContent = total;
+
+  // Menu elements
+  const menuBtn = document.getElementById('menuBtn');
+  const menuPanel = document.getElementById('menuPanel');
+  const menuOverlay = document.getElementById('menuOverlay');
+  const menuItems = menuPanel.querySelectorAll('[data-go]');
+
+  function toggleMenu(open) {
+    const isOpen = open !== undefined ? open : !menuPanel.classList.contains('open');
+    menuPanel.classList.toggle('open', isOpen);
+    menuOverlay.classList.toggle('open', isOpen);
+    menuBtn.classList.toggle('open', isOpen);
+    menuBtn.textContent = isOpen ? '✕' : '☰';
+    if (isOpen) {
+      const active = menuPanel.querySelector('.menu-item.active, .menu-item-divider.active');
+      if (active) setTimeout(() => active.scrollIntoView({ block: 'center', behavior: 'smooth' }), 100);
+    }
+  }
+
+  function updateMenu() {
+    const slideNum = current + 1;
+    menuItems.forEach(item => {
+      const go = parseInt(item.dataset.go, 10);
+      item.classList.toggle('active', go === slideNum);
+    });
+  }
+
+  menuBtn.addEventListener('click', () => toggleMenu());
+  menuOverlay.addEventListener('click', () => toggleMenu(false));
+
+  menuItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const target = parseInt(item.dataset.go, 10) - 1;
+      goTo(target);
+      toggleMenu(false);
+    });
+  });
+
+  function goTo(n) {
+    if (n < 0 || n >= total) return;
+    const goingForward = n > current;
+    slides[current].classList.remove('active');
+    if (goingForward) slides[current].classList.add('exit-left');
+    else slides[current].classList.remove('exit-left');
+    // Clear exit-left after transition
+    const prev = slides[current];
+    setTimeout(() => prev.classList.remove('exit-left'), 500);
+    // Set entry direction for new slide
+    if (!goingForward) slides[n].classList.remove('exit-left');
+    else slides[n].classList.remove('exit-left');
+    slides[n].style.transform = goingForward ? '' : 'translateX(-20px)';
+    void slides[n].offsetWidth; // force reflow
+    slides[n].style.transform = '';
+    current = n;
+    slides[current].classList.add('active');
+    document.getElementById('current').textContent = current + 1;
+    document.getElementById('progress').style.width = ((current + 1) / total * 100) + '%';
+    history.replaceState(null, '', '#' + (current + 1));
+    updateMenu();
+  }
+
+  document.getElementById('prev').addEventListener('click', () => goTo(current - 1));
+  document.getElementById('next').addEventListener('click', () => goTo(current + 1));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { toggleMenu(false); return; }
+    if (menuPanel.classList.contains('open')) return;
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault();
+      goTo(current + 1);
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      goTo(current - 1);
+    }
+    if (e.key === 'Home') goTo(0);
+    if (e.key === 'End') goTo(total - 1);
+  });
+
+  // Touch support
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      diff > 0 ? goTo(current + 1) : goTo(current - 1);
+    }
+  });
+
+  // Init from hash (1-based) or default to slide 1
+  const progressEl = document.getElementById('progress');
+  progressEl.style.transition = 'none';
+  const hashVal = parseInt(location.hash.replace('#', ''), 10) || 1;
+  const startSlide = Math.max(0, Math.min(hashVal - 1, total - 1));
+  if (startSlide > 0) goTo(startSlide);
+  progressEl.style.width = ((current + 1) / total * 100) + '%';
+  void progressEl.offsetWidth;
+  progressEl.style.transition = '';
+  updateMenu();
+</script>
+
+</body>
+</html>
