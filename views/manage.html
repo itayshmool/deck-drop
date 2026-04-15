@@ -412,7 +412,8 @@
       </div>
       <div id="deployConfigStatus"></div>
       <div class="btn-row">
-        <button class="btn-ghost" onclick="closeModal('deployModal')">Cancel</button>
+        <button class="btn-ghost" id="deployCancelBtn" onclick="closeModal('deployModal')">Cancel</button>
+        <button class="btn-ghost" id="deployViewBtn" style="display: none;" onclick="openProductionView()">Production View ↗</button>
         <button class="btn-primary" id="deployBtn" onclick="runDeploy()">Deploy</button>
       </div>
       <div class="progress-log" id="deployLog" style="display: none;"></div>
@@ -456,6 +457,7 @@
     let decks = [];
     let activeSlug = null;
     let newHtmlContent = null;
+    let deployedUrl = null;
 
     // --- API helpers ---
     async function api(method, path, body) {
@@ -623,12 +625,17 @@
     // --- Deploy ---
     async function openDeploy(slug) {
       activeSlug = slug;
+      deployedUrl = null;
       const deck = decks.find(d => d.slug === slug);
       document.getElementById('deployTitle').textContent = (deck.renderUrl ? 'Re-deploy: ' : 'Deploy: ') + deck.name;
       document.getElementById('deployLog').style.display = 'none';
       document.getElementById('deployLog').innerHTML = '';
-      document.getElementById('deployBtn').disabled = false;
-      document.getElementById('deployBtn').textContent = deck.renderUrl ? 'Re-deploy' : 'Deploy';
+      const btn = document.getElementById('deployBtn');
+      btn.disabled = false;
+      btn.textContent = deck.renderUrl ? 'Re-deploy' : 'Deploy';
+      btn.onclick = runDeploy;
+      document.getElementById('deployViewBtn').style.display = 'none';
+      document.getElementById('deployCancelBtn').textContent = 'Cancel';
 
       const config = await api('GET', '/api/config');
       const missing = [];
@@ -682,11 +689,17 @@
         }
         if (data.renderUrl) {
           log.innerHTML += `<div class="log-line done">Live at: ${data.renderUrl}</div>`;
+          deployedUrl = data.renderUrl;
+          const viewBtn = document.getElementById('deployViewBtn');
+          viewBtn.style.display = '';
         }
         for (const r of (data.reminders || [])) {
           log.innerHTML += `<div class="log-line reminder">${escapeHtml(r)}</div>`;
         }
+        btn.disabled = false;
         btn.textContent = 'Done';
+        btn.onclick = () => closeModal('deployModal');
+        document.getElementById('deployCancelBtn').textContent = 'Close';
         toast('Deployed successfully');
         await loadDecks();
       } catch (err) {
@@ -694,6 +707,10 @@
         btn.disabled = false;
         btn.textContent = 'Retry';
       }
+    }
+
+    function openProductionView() {
+      if (deployedUrl) window.open(deployedUrl, '_blank');
     }
 
     // --- Settings ---
