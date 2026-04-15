@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deck Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .container { max-width: 1040px; margin: 0 auto; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 40px;
+    }
+    .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: #deff9a;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-family: 'Urbanist', sans-serif;
+      font-size: 32px;
+      font-weight: 600;
+    }
+    .icon-btn {
+      background: transparent;
+      border: 1px solid #1e293b;
+      color: #64748b;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .icon-btn:hover { color: #deff9a; border-color: #334155; }
+
+    /* Deck grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: #141414;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #deff9a;
+      font-family: 'Inter', sans-serif;
+    }
+    .card h2 {
+      font-family: 'Urbanist', sans-serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+    .meta {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      color: #64748b;
+    }
+    .meta span::before { content: '· '; margin-right: 4px; }
+    .meta span:first-child::before { content: ''; margin-right: 0; }
+    .live-link {
+      color: #64748b;
+      font-size: 12px;
+      text-decoration: none;
+      word-break: break-all;
+    }
+    .live-link::before { content: '→ '; color: #deff9a; }
+    .live-link:hover { color: #deff9a; }
+    .not-deployed {
+      color: #64748b;
+      font-size: 12px;
+      font-style: italic;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 8px;
+    }
+    button, .btn {
+      background: #1e293b;
+      color: #deff9a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #334155; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary {
+      background: #deff9a;
+      color: #0a0a0a;
+      border-color: #deff9a;
+      font-weight: 500;
+    }
+    .btn-primary:hover { background: #c8e87e; }
+    .btn-ghost {
+      background: transparent;
+      border-color: #1e293b;
+      color: #cbd5e1;
+    }
+    .btn-ghost:hover { background: #1e293b; }
+
+    /* Create card (new deck placeholder) */
+    .card-create {
+      border: 1px dashed #334155;
+      background: transparent;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 200px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .card-create:hover {
+      border-color: #deff9a;
+      background: rgba(222, 255, 154, 0.04);
+    }
+    .plus {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #deff9a;
+      font-size: 24px;
+      font-weight: 300;
+      margin-bottom: 8px;
+    }
+
+    /* Modals */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: #141414;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 560px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .modal-header h2 {
+      font-family: 'Urbanist', sans-serif;
+      font-size: 22px;
+      font-weight: 600;
+    }
+    .close {
+      background: transparent;
+      border: none;
+      color: #64748b;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 10px;
+    }
+    .close:hover { color: #e2e8f0; background: transparent; }
+
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    input[type="text"], input[type="email"], input[type="password"], textarea {
+      width: 100%;
+      background: #0a0a0a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus { border-color: #deff9a; }
+    textarea { resize: vertical; min-height: 90px; font-family: 'Inter', monospace; }
+    .hint {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 6px;
+    }
+
+    .file-drop {
+      border: 1px dashed #334155;
+      border-radius: 8px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .file-drop:hover, .file-drop.dragging {
+      border-color: #deff9a;
+      background: rgba(222, 255, 154, 0.04);
+    }
+    .file-drop input { display: none; }
+    .file-name { color: #deff9a; font-size: 13px; margin-top: 8px; }
+
+    .progress-log {
+      background: #0a0a0a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      font-size: 13px;
+      font-family: 'SF Mono', Consolas, monospace;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .log-line {
+      padding: 4px 0;
+      color: #cbd5e1;
+    }
+    .log-line.done::before { content: '✓ '; color: #deff9a; }
+    .log-line.running::before { content: '→ '; color: #60a5fa; }
+    .log-line.skipped::before { content: '○ '; color: #64748b; }
+    .log-line.error::before { content: '✗ '; color: #f87171; }
+    .log-line.reminder::before { content: '! '; color: #fbbf24; }
+    .log-line.skipped, .log-line.error { color: #64748b; }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #141414;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 13px;
+      color: #deff9a;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { color: #f87171; border-color: #7f1d1d; }
+
+    .btn-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(222, 255, 154, 0.1);
+      color: #deff9a;
+      letter-spacing: 0.5px;
+    }
+    .badge.gray {
+      background: #1e293b;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <div class="label">Deck Manager</div>
+        <h1>Online Decks</h1>
+      </div>
+      <button class="icon-btn" onclick="openSettings()" title="Settings">⚙</button>
+    </div>
+
+    <div class="grid" id="deckGrid"></div>
+  </div>
+
+  <!-- Create modal -->
+  <div class="overlay" id="createModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Create New Deck</h2>
+        <button class="close" onclick="closeModal('createModal')">✕</button>
+      </div>
+      <div class="field">
+        <label>Slug (folder name, URL-safe)</label>
+        <input type="text" id="newSlug" placeholder="my-deck" autocomplete="off">
+        <div class="hint">lowercase letters, numbers, hyphens, dots</div>
+      </div>
+      <div class="field">
+        <label>Display Name</label>
+        <input type="text" id="newName" placeholder="My Deck Name" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Seed Users (one email per line)</label>
+        <textarea id="newUsers" placeholder="itays@wix.com&#10;user@example.com"></textarea>
+      </div>
+      <div class="field">
+        <label>HTML File (optional)</label>
+        <label class="file-drop" id="fileDrop">
+          <input type="file" id="newHtml" accept=".html,.htm,text/html">
+          <div>Click or drag HTML file here</div>
+          <div class="file-name" id="fileName"></div>
+        </label>
+      </div>
+      <div class="btn-row">
+        <button class="btn-ghost" onclick="closeModal('createModal')">Cancel</button>
+        <button class="btn-primary" onclick="createDeck()">Create Deck</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Duplicate modal -->
+  <div class="overlay" id="duplicateModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="duplicateTitle">Duplicate Deck</h2>
+        <button class="close" onclick="closeModal('duplicateModal')">✕</button>
+      </div>
+      <div class="field">
+        <label>New Slug (folder name, URL-safe)</label>
+        <input type="text" id="dupSlug" placeholder="my-deck-copy" autocomplete="off">
+        <div class="hint">lowercase letters, numbers, hyphens, dots</div>
+      </div>
+      <div class="field">
+        <label>New Display Name</label>
+        <input type="text" id="dupName" placeholder="My Deck Copy" autocomplete="off">
+      </div>
+      <div class="field">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+          <input type="checkbox" id="dupCopyUsers" checked style="width: auto; margin: 0;">
+          <span>Copy seed users from source</span>
+        </label>
+        <div class="hint">HTML is always copied. Render URL is not copied — a new service will be created on deploy.</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-ghost" onclick="closeModal('duplicateModal')">Cancel</button>
+        <button class="btn-primary" onclick="duplicateDeck()">Duplicate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users modal -->
+  <div class="overlay" id="usersModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="usersTitle">Edit Users</h2>
+        <button class="close" onclick="closeModal('usersModal')">✕</button>
+      </div>
+      <div class="field">
+        <label>Seed Users (one email per line)</label>
+        <textarea id="editUsers" style="min-height: 200px;"></textarea>
+        <div class="hint">Seed is used to bootstrap a new deploy. Use the deck's /admin panel to manage live users.</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-ghost" onclick="closeModal('usersModal')">Cancel</button>
+        <button class="btn-primary" onclick="saveUsers()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deploy modal -->
+  <div class="overlay" id="deployModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="deployTitle">Deploy</h2>
+        <button class="close" onclick="closeModal('deployModal')">✕</button>
+      </div>
+      <div id="deployConfigStatus"></div>
+      <div class="btn-row">
+        <button class="btn-ghost" onclick="closeModal('deployModal')">Cancel</button>
+        <button class="btn-primary" id="deployBtn" onclick="runDeploy()">Deploy</button>
+      </div>
+      <div class="progress-log" id="deployLog" style="display: none;"></div>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div class="overlay" id="settingsModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Settings</h2>
+        <button class="close" onclick="closeModal('settingsModal')">✕</button>
+      </div>
+      <div class="field">
+        <label>Google Client ID</label>
+        <input type="text" id="gClientId" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Google Client Secret</label>
+        <input type="password" id="gClientSecret" autocomplete="off" placeholder="Leave blank to keep current">
+      </div>
+      <div class="field">
+        <label>Admin Emails (comma-separated)</label>
+        <input type="text" id="adminEmails" autocomplete="off" placeholder="itays@wix.com,michalru@wix.com">
+      </div>
+      <div class="field">
+        <label>Render API Key</label>
+        <input type="password" id="renderApiKey" autocomplete="off" placeholder="Leave blank to keep current">
+        <div class="hint">Get from https://dashboard.render.com/account/api-keys</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-ghost" onclick="closeModal('settingsModal')">Cancel</button>
+        <button class="btn-primary" onclick="saveSettings()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let decks = [];
+    let activeSlug = null;
+    let newHtmlContent = null;
+
+    // --- API helpers ---
+    async function api(method, path, body) {
+      const res = await fetch(path, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      return data;
+    }
+
+    // --- Toast ---
+    function toast(msg, isError) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.toggle('error', !!isError);
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 3000);
+    }
+
+    // --- Modal helpers ---
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    // --- Deck grid ---
+    async function loadDecks() {
+      const data = await api('GET', '/api/decks');
+      decks = data.decks;
+      renderGrid();
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+      return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('deckGrid');
+      grid.innerHTML = decks.map(d => `
+        <div class="card">
+          <div class="card-label">${d.slug}</div>
+          <h2>${escapeHtml(d.name)}</h2>
+          <div class="meta">
+            <span>${d.userCount} user${d.userCount !== 1 ? 's' : ''}</span>
+            <span>${d.hasHtml ? formatSize(d.htmlSize) + ' HTML' : 'no HTML'}</span>
+          </div>
+          ${d.renderUrl
+            ? `<a class="live-link" href="${d.renderUrl}" target="_blank">${d.renderUrl.replace(/^https?:\/\//, '')}</a>`
+            : '<div class="not-deployed">Not deployed</div>'}
+          <div class="actions">
+            <button onclick="previewDeck('${d.slug}')">Preview</button>
+            <button onclick="openUsers('${d.slug}')">Users</button>
+            <button onclick="openDuplicate('${d.slug}')">Duplicate</button>
+            <button class="btn-primary" onclick="openDeploy('${d.slug}')">${d.renderUrl ? 'Re-deploy' : 'Deploy'}</button>
+          </div>
+        </div>
+      `).join('') + `
+        <div class="card card-create" onclick="openCreate()">
+          <div class="plus">+</div>
+          <div><strong>Create New Deck</strong></div>
+          <div style="color: #64748b; font-size: 13px;">Add a new presentation</div>
+        </div>
+      `;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // --- Preview ---
+    function previewDeck(slug) {
+      window.open(`/api/decks/${slug}/preview`, '_blank');
+    }
+
+    // --- Create ---
+    function openCreate() {
+      document.getElementById('newSlug').value = '';
+      document.getElementById('newName').value = '';
+      document.getElementById('newUsers').value = '';
+      document.getElementById('newHtml').value = '';
+      document.getElementById('fileName').textContent = '';
+      newHtmlContent = null;
+      openModal('createModal');
+    }
+
+    document.getElementById('newHtml').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      document.getElementById('fileName').textContent = `${file.name} — ${formatSize(file.size)}`;
+      newHtmlContent = await file.text();
+    });
+
+    async function createDeck() {
+      const slug = document.getElementById('newSlug').value.trim();
+      const name = document.getElementById('newName').value.trim();
+      const users = document.getElementById('newUsers').value
+        .split(/[\n,]+/).map(e => e.trim()).filter(Boolean);
+      if (!slug || !name) return toast('Slug and name are required', true);
+      try {
+        await api('POST', '/api/decks', { slug, name, users, htmlContent: newHtmlContent });
+        toast(`Created ${slug}`);
+        closeModal('createModal');
+        await loadDecks();
+      } catch (err) {
+        toast(err.message, true);
+      }
+    }
+
+    // --- Duplicate ---
+    function openDuplicate(slug) {
+      activeSlug = slug;
+      const deck = decks.find(d => d.slug === slug);
+      document.getElementById('duplicateTitle').textContent = `Duplicate: ${deck.name}`;
+      document.getElementById('dupSlug').value = `${slug}-copy`;
+      document.getElementById('dupName').value = `${deck.name} (Copy)`;
+      document.getElementById('dupCopyUsers').checked = true;
+      openModal('duplicateModal');
+    }
+
+    async function duplicateDeck() {
+      const newSlug = document.getElementById('dupSlug').value.trim();
+      const newName = document.getElementById('dupName').value.trim();
+      const copyUsers = document.getElementById('dupCopyUsers').checked;
+      if (!newSlug || !newName) return toast('New slug and name are required', true);
+      try {
+        await api('POST', `/api/decks/${activeSlug}/duplicate`, { newSlug, newName, copyUsers });
+        toast(`Duplicated to ${newSlug}`);
+        closeModal('duplicateModal');
+        await loadDecks();
+      } catch (err) {
+        toast(err.message, true);
+      }
+    }
+
+    // --- Users ---
+    async function openUsers(slug) {
+      activeSlug = slug;
+      const deck = decks.find(d => d.slug === slug);
+      document.getElementById('usersTitle').textContent = `Seed users: ${deck.name}`;
+      try {
+        const data = await api('GET', `/api/decks/${slug}/seed`);
+        document.getElementById('editUsers').value = (data.users || []).join('\n');
+      } catch {
+        document.getElementById('editUsers').value = '';
+      }
+      openModal('usersModal');
+    }
+
+    async function saveUsers() {
+      const users = document.getElementById('editUsers').value
+        .split(/[\n,]+/).map(e => e.trim()).filter(Boolean);
+      try {
+        await api('PUT', `/api/decks/${activeSlug}/users`, { users });
+        toast(`Saved ${users.length} user${users.length !== 1 ? 's' : ''}`);
+        closeModal('usersModal');
+        await loadDecks();
+      } catch (err) {
+        toast(err.message, true);
+      }
+    }
+
+    // --- Deploy ---
+    async function openDeploy(slug) {
+      activeSlug = slug;
+      const deck = decks.find(d => d.slug === slug);
+      document.getElementById('deployTitle').textContent = (deck.renderUrl ? 'Re-deploy: ' : 'Deploy: ') + deck.name;
+      document.getElementById('deployLog').style.display = 'none';
+      document.getElementById('deployLog').innerHTML = '';
+      document.getElementById('deployBtn').disabled = false;
+      document.getElementById('deployBtn').textContent = deck.renderUrl ? 'Re-deploy' : 'Deploy';
+
+      const config = await api('GET', '/api/config');
+      const missing = [];
+      if (!config.googleClientId) missing.push('Google Client ID');
+      if (!config.hasGoogleSecret) missing.push('Google Client Secret');
+      if (!config.adminEmails) missing.push('Admin Emails');
+      if (!config.hasRenderApiKey) missing.push('Render API Key');
+
+      const statusEl = document.getElementById('deployConfigStatus');
+      if (missing.length) {
+        statusEl.innerHTML = `
+          <div style="background: rgba(248, 113, 113, 0.1); border: 1px solid #7f1d1d; border-radius: 8px; padding: 12px; margin-bottom: 16px; color: #f87171; font-size: 13px;">
+            Missing config: ${missing.join(', ')}.<br>
+            <a href="#" onclick="event.preventDefault(); closeModal('deployModal'); openSettings();" style="color: #deff9a;">Open Settings</a> to configure.
+          </div>`;
+        document.getElementById('deployBtn').disabled = true;
+      } else {
+        statusEl.innerHTML = `
+          <div style="font-size: 13px; color: #94a3b8; margin-bottom: 16px; line-height: 1.7;">
+            <div><span class="badge">✓</span> Google OAuth: <code style="color: #cbd5e1;">${config.googleClientId}</code></div>
+            <div><span class="badge">✓</span> Admins: <code style="color: #cbd5e1;">${escapeHtml(config.adminEmails)}</code></div>
+            <div><span class="badge">✓</span> Render API: configured</div>
+          </div>`;
+      }
+      openModal('deployModal');
+    }
+
+    async function runDeploy() {
+      const btn = document.getElementById('deployBtn');
+      const log = document.getElementById('deployLog');
+      btn.disabled = true;
+      btn.textContent = 'Deploying...';
+      log.style.display = 'block';
+      log.innerHTML = '<div class="log-line running">Running deploy pipeline...</div>';
+
+      try {
+        const res = await fetch(`/api/decks/${activeSlug}/deploy`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        log.innerHTML = '';
+        for (const step of (data.steps || [])) {
+          log.innerHTML += `<div class="log-line ${step.status}">${step.step}${step.message ? ': ' + escapeHtml(step.message) : ''}</div>`;
+        }
+        if (data.error) {
+          log.innerHTML += `<div class="log-line error">${escapeHtml(data.error)}</div>`;
+          btn.disabled = false;
+          btn.textContent = 'Retry';
+          return;
+        }
+        if (data.renderUrl) {
+          log.innerHTML += `<div class="log-line done">Live at: ${data.renderUrl}</div>`;
+        }
+        for (const r of (data.reminders || [])) {
+          log.innerHTML += `<div class="log-line reminder">${escapeHtml(r)}</div>`;
+        }
+        btn.textContent = 'Done';
+        toast('Deployed successfully');
+        await loadDecks();
+      } catch (err) {
+        log.innerHTML += `<div class="log-line error">${escapeHtml(err.message)}</div>`;
+        btn.disabled = false;
+        btn.textContent = 'Retry';
+      }
+    }
+
+    // --- Settings ---
+    async function openSettings() {
+      const config = await api('GET', '/api/config');
+      document.getElementById('gClientId').value = config.googleClientId || '';
+      document.getElementById('gClientSecret').value = '';
+      document.getElementById('adminEmails').value = config.adminEmails || '';
+      document.getElementById('renderApiKey').value = '';
+      document.getElementById('gClientSecret').placeholder = config.hasGoogleSecret ? 'Configured — leave blank to keep' : 'Enter secret';
+      document.getElementById('renderApiKey').placeholder = config.hasRenderApiKey ? 'Configured — leave blank to keep' : 'Enter API key';
+      openModal('settingsModal');
+    }
+
+    async function saveSettings() {
+      const body = {
+        googleClientId: document.getElementById('gClientId').value.trim(),
+        googleClientSecret: document.getElementById('gClientSecret').value.trim(),
+        adminEmails: document.getElementById('adminEmails').value.trim(),
+        renderApiKey: document.getElementById('renderApiKey').value.trim()
+      };
+      try {
+        await api('PUT', '/api/config', body);
+        toast('Settings saved');
+        closeModal('settingsModal');
+      } catch (err) {
+        toast(err.message, true);
+      }
+    }
+
+    // Close modals on overlay click
+    document.querySelectorAll('.overlay').forEach(o => {
+      o.addEventListener('click', (e) => {
+        if (e.target === o) o.classList.remove('open');
+      });
+    });
+
+    // Init
+    loadDecks().catch(err => toast(err.message, true));
+  </script>
+</body>
+</html>
