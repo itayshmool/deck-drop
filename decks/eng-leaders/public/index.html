@@ -470,17 +470,18 @@
 
   <div class="menu-item-divider" data-go="3">People & Leadership</div>
   <div class="menu-item" data-go="4"><span class="menu-item-num">4</span><span class="menu-item-title">New Leadership Model</span></div>
-  <div class="menu-item" data-go="5"><span class="menu-item-num">5</span><span class="menu-item-title">The xEngineer</span></div>
-  <div class="menu-item" data-go="6"><span class="menu-item-num">6</span><span class="menu-item-title">Everyone is a Creator</span></div>
-  <div class="menu-item" data-go="7"><span class="menu-item-num">7</span><span class="menu-item-title">Contribution Model</span></div>
+  <div class="menu-item" data-go="5"><span class="menu-item-num">5</span><span class="menu-item-title">Killing Middle Management</span></div>
+  <div class="menu-item" data-go="6"><span class="menu-item-num">6</span><span class="menu-item-title">The xEngineer</span></div>
+  <div class="menu-item" data-go="7"><span class="menu-item-num">7</span><span class="menu-item-title">Everyone is a Creator</span></div>
+  <div class="menu-item" data-go="8"><span class="menu-item-num">8</span><span class="menu-item-title">Contribution Model</span></div>
 
-  <div class="menu-item-divider" data-go="8">AI-Native Infrastructure</div>
-  <div class="menu-item" data-go="9"><span class="menu-item-num">9</span><span class="menu-item-title">Built on AI</span></div>
-  <div class="menu-item" data-go="10"><span class="menu-item-num">10</span><span class="menu-item-title">The 5 Pillars</span></div>
-  <div class="menu-item" data-go="11"><span class="menu-item-num">11</span><span class="menu-item-title">Guild Masters</span></div>
+  <div class="menu-item-divider" data-go="9">AI-Native Infrastructure</div>
+  <div class="menu-item" data-go="10"><span class="menu-item-num">10</span><span class="menu-item-title">Built on AI</span></div>
+  <div class="menu-item" data-go="11"><span class="menu-item-num">11</span><span class="menu-item-title">The 5 Pillars</span></div>
+  <div class="menu-item" data-go="12"><span class="menu-item-num">12</span><span class="menu-item-title">Guild Masters</span></div>
 
   <div class="menu-section">Closing</div>
-  <div class="menu-item" data-go="12"><span class="menu-item-num">12</span><span class="menu-item-title">Closing</span></div>
+  <div class="menu-item" data-go="13"><span class="menu-item-num">13</span><span class="menu-item-title">Closing</span></div>
 </div>
 
 <div class="deck" id="deck">
@@ -535,8 +536,47 @@
     </div>
   </div>
 
-  <!-- SLIDE 5: The xEngineer -->
+  <!-- SLIDE 4b: Killing Middle Management -->
   <div class="slide" data-slide="4">
+    <div class="slide-label">Structure</div>
+    <div class="slide-title md">Killing <span class="green">Middle Management</span></div>
+    <div class="slide-subtitle" style="margin-bottom: 20px;">From hierarchy to a flat, high-trust organization</div>
+    <div style="display: flex; gap: 40px; margin-top: 8px; align-items: flex-start; flex-wrap: wrap;">
+      <!-- Before / After diagrams -->
+      <div style="flex: 1; min-width: 240px;">
+        <div style="font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px;">Before — 4 layers</div>
+        <div style="font-family: monospace; font-size: 14px; color: var(--muted); line-height: 1.8; padding: 16px; background: var(--bg-card); border: 1px solid var(--dark-border); border-radius: 8px;">
+          VP<br>
+          &nbsp;&nbsp;└── Director<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── Sr. Manager<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── Team Lead<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── Engineers (3-5)
+        </div>
+      </div>
+      <div style="flex: 1; min-width: 240px;">
+        <div style="font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--green); margin-bottom: 10px;">After — 1 layer</div>
+        <div style="font-family: monospace; font-size: 14px; color: var(--white); line-height: 1.8; padding: 16px; background: var(--bg-card); border: 1px solid var(--green); border-radius: 8px; opacity: 0.9;">
+          Head of Company<br>
+          &nbsp;&nbsp;├── TL A → 7-10 xEngineers + agents<br>
+          &nbsp;&nbsp;├── TL B → 7-10 xEngineers + agents<br>
+          &nbsp;&nbsp;├── Guild Master (UX)<br>
+          &nbsp;&nbsp;└── Guild Master (Data)
+        </div>
+      </div>
+    </div>
+    <table class="compare-table" style="margin-top: 20px;">
+      <thead><tr><th>Middle Manager Function</th><th>What Replaces It</th></tr></thead>
+      <tbody>
+        <tr><td>Status reporting</td><td>AI agents — automated dashboards</td></tr>
+        <tr><td>Cross-team coordination</td><td>Contribution model — teams contribute directly</td></tr>
+        <tr><td>People management</td><td>TLs with larger teams — direct relationships</td></tr>
+        <tr><td>Process enforcement</td><td>Automated via PR Reviewer, Shield, CI/CD</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SLIDE 5: The xEngineer -->
+  <div class="slide" data-slide="5">
     <div class="slide-label">The New Developer</div>
     <div class="slide-title md">The <span class="green">xEngineer</span></div>
     <ul class="bullets" style="margin-top: 32px;">
@@ -551,7 +591,7 @@
   </div>
 
   <!-- SLIDE 6: Creators -->
-  <div class="slide" data-slide="5">
+  <div class="slide" data-slide="6">
     <div class="slide-label">Culture</div>
     <div class="slide-title md">Everyone is a <span class="green">Creator</span></div>
     <div class="slide-subtitle" style="margin-bottom: 24px;">On top of your core profession ("black belt"), every person adopts a creator mindset.</div>
@@ -595,7 +635,7 @@
   </div>
 
   <!-- SLIDE 7: Contribution Model -->
-  <div class="slide" data-slide="6">
+  <div class="slide" data-slide="7">
     <div class="slide-label">Dependencies</div>
     <div class="slide-title sm">The <span class="green">Contribution</span> Model</div>
     <div style="margin-top: 36px;">
@@ -628,13 +668,13 @@
   </div>
 
   <!-- SLIDE 8: Section — AI -->
-  <div class="slide section-divider" data-slide="7">
+  <div class="slide section-divider" data-slide="8">
     <div class="section-part">Part 2</div>
     <div class="section-title">AI-Native<br><span style="color: var(--green);">Infrastructure</span></div>
   </div>
 
   <!-- SLIDE 9: Built on AI -->
-  <div class="slide" data-slide="8">
+  <div class="slide" data-slide="9">
     <div class="slide-label">Foundation</div>
     <div class="slide-title sm">Built <span class="green">on</span> AI, not just<br>using AI</div>
     <div class="slide-subtitle" style="margin-top: 20px;">A shared AI platform powers all teams equally. This is what makes lean, autonomous teams possible.</div>
@@ -657,7 +697,7 @@
   </div>
 
   <!-- SLIDE 10: The 5 Pillars -->
-  <div class="slide" data-slide="9">
+  <div class="slide" data-slide="10">
     <div class="slide-label">AI Platform Stack</div>
     <div class="slide-title sm">The <span class="green">5 Pillars</span></div>
     <div class="pillars">
@@ -697,7 +737,7 @@
   </div>
 
   <!-- SLIDE 11: Professional Standards -->
-  <div class="slide" data-slide="10">
+  <div class="slide" data-slide="11">
     <div class="slide-label">Quality</div>
     <div class="slide-title sm"><span class="green">Guild Masters</span> — Professional Standards</div>
     <div class="slide-subtitle" style="margin-bottom: 8px;">Cross-team expert roles maintain excellence — without traditional hierarchy.</div>
@@ -718,7 +758,7 @@
   </div>
 
   <!-- SLIDE 12: Closing -->
-  <div class="slide statement" data-slide="11">
+  <div class="slide statement" data-slide="12">
     <div class="slide-label">Engineering Leaders Forum</div>
     <div class="slide-title sm" style="max-width: 800px; line-height: 1.5;">
       The AI era demands a new<br><span class="green">leadership model</span>, new <span class="green">team structures</span>,<br>and new <span class="green">ways of building</span>.
