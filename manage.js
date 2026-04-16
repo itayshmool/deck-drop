@@ -260,6 +260,15 @@ app.get('/api/decks/:slug/preview', (req, res) => {
   res.sendFile(htmlPath);
 });
 
+// Static assets for preview (images referenced relative to the preview HTML)
+app.get('/api/decks/:slug/images/*', (req, res) => {
+  const { slug } = req.params;
+  if (!isValidSlug(slug)) return res.status(400).send('Invalid slug');
+  const imgPath = path.join(DECKS_DIR, slug, 'public', 'images', req.params[0]);
+  if (!fs.existsSync(imgPath)) return res.status(404).send('Not found');
+  res.sendFile(imgPath);
+});
+
 app.post('/api/decks/:slug/deploy', async (req, res) => {
   const { slug } = req.params;
   if (!isValidSlug(slug) || !fs.existsSync(path.join(DECKS_DIR, slug))) {
