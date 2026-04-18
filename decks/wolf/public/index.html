@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Wolf — Technical Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --gold: #d4a847;
+    --gold-light: #f5e6b8;
+    --gold-bg: #faf6eb;
+    --blood: #c41e3a;
+    --blood-light: #fdf2f4;
+    --green: #2d8a4e;
+    --green-bg: #f0f8f3;
+    --dark: #1a1a1a;
+    --text: #2d2d2d;
+    --muted: #6b6b6b;
+    --bg: #ffffff;
+    --bg-warm: #fafaf8;
+    --border: #e8e4de;
+    --smoke: #8a8a7a;
+    --blue: #4a7fb5;
+    --blue-bg: #f0f4f8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    font-family: 'Crimson Text', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .deck { width: 100%; height: 100%; position: relative; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 50px 80px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  /* ---- Typography ---- */
+  h1, h2, h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .slide h1 { font-size: 64px; line-height: 1.05; color: var(--dark); }
+  .slide h2 { font-size: 42px; line-height: 1.1; color: var(--dark); margin-bottom: 20px; }
+  .slide h3 { font-size: 26px; color: var(--gold); margin-bottom: 12px; letter-spacing: 0.06em; }
+
+  .slide p, .slide li {
+    font-size: 19px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .slide p { margin-bottom: 12px; }
+
+  .slide ul { list-style: none; padding: 0; }
+  .slide ul li { padding: 5px 0 5px 24px; position: relative; }
+  .slide ul li::before {
+    content: '';
+    position: absolute; left: 0; top: 14px;
+    width: 8px; height: 8px;
+    background: var(--gold);
+    border-radius: 2px;
+    transform: rotate(45deg);
+  }
+
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .gold { color: var(--gold); }
+  .blood { color: var(--blood); }
+  .green { color: var(--green); }
+  .muted { color: var(--muted); }
+
+  .divider {
+    width: 70px; height: 4px;
+    background: var(--gold);
+    border: none; margin: 16px 0; border-radius: 2px;
+  }
+
+  /* ---- Code blocks ---- */
+  pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14.5px;
+    line-height: 1.65;
+    padding: 22px 28px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    border-radius: 10px;
+    overflow-x: auto;
+    margin: 12px 0;
+  }
+  pre .kw { color: #cba6f7; }
+  pre .fn { color: #89b4fa; }
+  pre .str { color: #a6e3a1; }
+  pre .cm { color: #6c7086; font-style: italic; }
+  pre .op { color: #89dceb; }
+  pre .num { color: #fab387; }
+  pre .type { color: #f9e2af; }
+  pre .gold { color: #f9e2af; }
+  pre .red { color: #f38ba8; }
+  pre .green { color: #a6e3a1; }
+  pre .blue { color: #89b4fa; }
+  pre .dim { color: #6c7086; }
+
+  /* ---- Tables ---- */
+  table {
+    width: 100%; border-collapse: collapse;
+    margin: 12px 0; font-size: 17px;
+  }
+  th {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px; letter-spacing: 0.08em;
+    text-transform: uppercase; text-align: left;
+    padding: 10px 14px;
+    background: var(--dark); color: var(--gold);
+    font-weight: 400;
+  }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tbody tr:nth-child(even) { background: var(--bg-warm); }
+
+  /* ---- Cards ---- */
+  .card-row { display: flex; gap: 18px; margin: 12px 0; }
+  .card {
+    flex: 1;
+    background: var(--bg-warm);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px;
+  }
+  .card h3 { font-size: 20px; margin-bottom: 8px; }
+  .card p, .card li { font-size: 16px; line-height: 1.5; }
+
+  /* ---- Layer cards ---- */
+  .layer-card {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 16px 20px;
+    background: var(--bg-warm);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+  }
+  .layer-badge {
+    flex-shrink: 0;
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px; color: #fff;
+  }
+  .layer-card p { font-size: 17px; margin: 0; line-height: 1.45; }
+  .layer-card strong { color: var(--dark); }
+
+  /* ---- Pipeline flow ---- */
+  .pipeline {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 0;
+    margin: 10px 0;
+  }
+  .pipe-step {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 24px;
+    background: var(--bg-warm);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 100%; max-width: 620px;
+  }
+  .pipe-num {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--dark); color: var(--gold);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pipe-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px; color: var(--dark);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .pipe-desc { font-size: 15px; color: var(--muted); margin-top: 1px; }
+  .pipe-arrow {
+    font-size: 18px; color: var(--smoke);
+    text-align: center; margin: 3px 0;
+  }
+
+  /* ---- Agent comparison ---- */
+  .agent-split {
+    display: flex; gap: 16px; margin: 10px 0;
+  }
+  .agent-box {
+    flex: 1; padding: 20px;
+    border-radius: 10px; font-size: 16px; line-height: 1.5;
+  }
+  .agent-box.wolf-box { background: var(--gold-bg); border: 2px solid var(--gold); }
+  .agent-box.mirror-box { background: var(--blue-bg); border: 2px solid var(--blue); }
+  .agent-box .agent-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px; letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .agent-box.wolf-box .agent-title { color: var(--gold); }
+  .agent-box.mirror-box .agent-title { color: var(--blue); }
+  .agent-box code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; background: rgba(0,0,0,0.06);
+    padding: 2px 6px; border-radius: 4px;
+  }
+
+  .verdict-bar {
+    display: flex; gap: 10px;
+    justify-content: center;
+    margin: 12px 0;
+  }
+  .verdict-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px; font-weight: 500;
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: 2px solid;
+  }
+  .verdict-tag.v { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+  .verdict-tag.c { background: var(--gold-bg); border-color: var(--gold); color: #b8941f; }
+  .verdict-tag.n { background: var(--blue-bg); border-color: var(--blue); color: var(--blue); }
+  .verdict-tag.r { background: var(--blood-light); border-color: var(--blood); color: var(--blood); }
+
+  /* ---- Security flow ---- */
+  .sec-flow {
+    display: flex; flex-direction: column; gap: 0;
+    align-items: center; margin: 10px 0;
+  }
+  .sec-step {
+    display: flex; gap: 14px; align-items: center;
+    width: 100%; max-width: 680px;
+    padding: 14px 22px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-warm);
+  }
+  .sec-icon {
+    flex-shrink: 0; width: 38px; height: 38px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .sec-step p { font-size: 16px; margin: 0; line-height: 1.4; }
+  .sec-step strong { color: var(--dark); }
+  .sec-arrow { font-size: 18px; color: var(--smoke); margin: 3px 0; text-align: center; }
+
+  /* ---- Middleware stack ---- */
+  .mw-stack {
+    display: flex; flex-direction: column;
+    gap: 0; margin: 10px 0;
+    max-width: 600px;
+  }
+  .mw-layer {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 20px;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    background: var(--bg-warm);
+    font-size: 16px;
+  }
+  .mw-layer:first-child { border-radius: 10px 10px 0 0; }
+  .mw-layer:last-child { border-radius: 0 0 10px 10px; border-bottom: 1px solid var(--border); }
+  .mw-layer .mw-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px; font-weight: 500;
+    color: var(--dark);
+    min-width: 180px;
+  }
+  .mw-layer .mw-desc { color: var(--muted); font-size: 15px; }
+  .mw-layer .mw-arrow { color: var(--gold); font-size: 14px; margin-right: 4px; }
+
+  /* ---- Schema tree ---- */
+  .schema-tree {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px; line-height: 1.8;
+    padding: 24px 28px;
+    background: #f7f5f0;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin: 12px 0;
+  }
+  .schema-tree .tbl { color: var(--dark); font-weight: 600; }
+  .schema-tree .rel { color: var(--smoke); }
+
+  /* ---- Title / Closing ---- */
+  .title-slide {
+    justify-content: center; align-items: center; text-align: center;
+  }
+  .title-slide h1 { font-size: 100px; letter-spacing: 0.08em; }
+  .title-slide .subtitle {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px; color: var(--muted);
+    letter-spacing: 0.1em; margin-top: 12px;
+    text-transform: uppercase;
+  }
+  .title-slide .tags {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px; color: var(--smoke);
+    margin-top: 24px; letter-spacing: 0.04em;
+  }
+
+  .closing-slide {
+    justify-content: center; align-items: center; text-align: center;
+    background: var(--dark);
+  }
+  .closing-slide h1 { color: var(--gold); font-size: 88px; }
+  .closing-slide .subtitle {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; color: #888;
+    letter-spacing: 0.1em; margin-top: 12px;
+    text-transform: uppercase;
+  }
+  .closing-slide .tech-tags {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px; color: #666;
+    margin-top: 36px; line-height: 2;
+    max-width: 600px;
+  }
+  .closing-slide .tech-tags span { color: var(--gold); }
+
+  /* ---- Nav ---- */
+  .nav {
+    position: fixed; bottom: 24px; right: 32px;
+    display: flex; gap: 8px; z-index: 100;
+  }
+  .nav button {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 2px solid var(--border); background: var(--bg);
+    color: var(--text); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; font-family: system-ui;
+  }
+  .nav button:hover { border-color: var(--gold); color: var(--gold); }
+
+  .progress {
+    position: fixed; bottom: 0; left: 0;
+    height: 3px; background: var(--gold);
+    transition: width 0.35s ease; z-index: 100;
+  }
+  .slide-counter {
+    position: fixed; bottom: 32px; left: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; color: var(--smoke); z-index: 100;
+  }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 1024px) {
+    .slide { padding: 36px 44px; }
+    .slide h1 { font-size: 48px; }
+    .slide h2 { font-size: 34px; }
+    .slide h3 { font-size: 22px; }
+    .slide p, .slide li { font-size: 17px; }
+    .title-slide h1 { font-size: 76px; }
+    .title-slide .subtitle { font-size: 26px; }
+    pre { font-size: 13px; padding: 18px 22px; }
+    table { font-size: 15px; }
+  }
+
+  @media (max-width: 768px) {
+    .slide {
+      padding: 24px 20px;
+      justify-content: flex-start;
+      padding-top: 40px;
+      overflow-y: auto;
+    }
+    .slide h1 { font-size: 36px; }
+    .slide h2 { font-size: 26px; margin-bottom: 14px; }
+    .slide h3 { font-size: 20px; margin-bottom: 8px; }
+    .slide p, .slide li { font-size: 16px; line-height: 1.5; }
+    .divider { margin: 10px 0; }
+
+    .title-slide, .closing-slide { justify-content: center; padding-top: 0; }
+    .title-slide h1 { font-size: 52px; }
+    .title-slide .subtitle { font-size: 22px; }
+    .title-slide .tags { font-size: 13px; }
+    .closing-slide h1 { font-size: 48px; }
+    .closing-slide .subtitle { font-size: 20px; }
+    .closing-slide .tech-tags { font-size: 13px; }
+
+    .card-row { flex-direction: column; gap: 10px; }
+    .card { padding: 16px; }
+    .agent-split { flex-direction: column; gap: 10px; }
+    .agent-box { padding: 14px; }
+    .verdict-bar { flex-wrap: wrap; gap: 8px; }
+
+    pre { font-size: 12px; padding: 14px 16px; }
+    .schema-tree { font-size: 13px; padding: 16px 18px; }
+
+    .pipe-step, .sec-step { max-width: 100%; padding: 10px 16px; }
+    .pipe-label { font-size: 16px; }
+    .pipe-desc { font-size: 13px; }
+
+    .mw-stack { max-width: 100%; }
+    .mw-layer { flex-direction: column; gap: 2px; padding: 8px 14px; }
+    .mw-layer .mw-name { min-width: auto; font-size: 13px; }
+    .mw-layer .mw-desc { font-size: 13px; }
+
+    table { display: block; overflow-x: auto; white-space: nowrap; font-size: 14px; }
+    th { font-size: 13px; padding: 8px 10px; }
+    td { padding: 8px 10px; }
+
+    .nav { bottom: 14px; right: 14px; }
+    .nav button { width: 36px; height: 36px; font-size: 14px; }
+    .slide-counter { bottom: 20px; left: 14px; font-size: 11px; }
+  }
+
+  @media (max-width: 420px) {
+    .slide { padding: 18px 14px; padding-top: 32px; }
+    .slide h2 { font-size: 22px; }
+    .title-slide h1 { font-size: 40px; }
+    .closing-slide h1 { font-size: 36px; }
+    pre { font-size: 11px; padding: 12px 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- =========== SLIDE 1: TITLE =========== -->
+  <div class="slide title-slide active" data-slide="0">
+    <h1>THE WOLF</h1>
+    <div class="subtitle">Technical Architecture</div>
+    <div class="tags">multi-llm &middot; zero-trust &middot; multi-tenant &middot; adversarial validation</div>
+  </div>
+
+  <!-- =========== SLIDE 2: SYSTEM OVERVIEW =========== -->
+  <div class="slide" data-slide="1">
+    <h3>System Overview</h3>
+    <h2>Architecture at a glance</h2>
+    <hr class="divider">
+    <pre>
+<span class="blue">Next.js 14</span>  &rarr;  <span class="gold">Hono API</span>  &rarr;  <span class="green">PostgreSQL</span> + <span class="red">Redis</span>
+                     &darr;
+              <span class="gold">BullMQ Workers</span>
+           &darr;                 &darr;
+     <span class="blue">Wolf LLM</span>          <span class="red">Mirror LLM</span>
+           &darr;                 &darr;
+        <span class="green">Consensus Engine</span> <span class="dim">(deterministic)</span>
+    </pre>
+    <div class="card-row" style="margin-top:16px;">
+      <div class="card" style="border-top:3px solid var(--blue);">
+        <h3 style="color:var(--dark); font-size:18px;">Frontend</h3>
+        <p>Next.js 14 App Router<br>Tailwind CSS + Recharts<br>react-window v2 (50K+ nodes)</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--gold);">
+        <h3 style="color:var(--dark); font-size:18px;">Backend</h3>
+        <p>Hono (TypeScript)<br>Drizzle ORM 0.45<br>BullMQ job queue</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--green);">
+        <h3 style="color:var(--dark); font-size:18px;">Data</h3>
+        <p>PostgreSQL (13 tables)<br>Redis (queues + cache)<br>AES-256-GCM encryption</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--blood);">
+        <h3 style="color:var(--dark); font-size:18px;">AI</h3>
+        <p>Multi-LLM (Claude, GPT, etc.)<br>3 agents (Wolf, Mirror, Fixer)<br>7-rule consensus engine</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========== SLIDE 3: DATA PIPELINE =========== -->
+  <div class="slide" data-slide="2">
+    <h3>Data Ingestion</h3>
+    <h2>Six stages, zero LLM calls</h2>
+    <hr class="divider">
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-num">1</div>
+        <div><div class="pipe-label">Parse</div><div class="pipe-desc">XLSX / CSV via SheetJS &mdash; extract raw rows + headers</div></div>
+      </div>
+      <div class="pipe-arrow">&darr;</div>
+      <div class="pipe-step">
+        <div class="pipe-num">2</div>
+        <div><div class="pipe-label">Column Auto-Detect</div><div class="pipe-desc">13 heuristic rules match headers to fields &mdash; confidence scoring per column</div></div>
+      </div>
+      <div class="pipe-arrow">&darr;</div>
+      <div class="pipe-step">
+        <div class="pipe-num">3</div>
+        <div><div class="pipe-label">User Mapping Review</div><div class="pipe-desc">Human confirms/adjusts detected column mappings</div></div>
+      </div>
+      <div class="pipe-arrow">&darr;</div>
+      <div class="pipe-step">
+        <div class="pipe-num">4</div>
+        <div><div class="pipe-label">Manager Resolution</div><div class="pipe-desc">ID &rarr; exact name &rarr; dept-disambiguated &rarr; email &rarr; fuzzy match</div></div>
+      </div>
+      <div class="pipe-arrow">&darr;</div>
+      <div class="pipe-step">
+        <div class="pipe-num">5</div>
+        <div><div class="pipe-label">Tree Build</div><div class="pipe-desc">Org depth, direct reports, subtree sizes, cycle detection</div></div>
+      </div>
+      <div class="pipe-arrow">&darr;</div>
+      <div class="pipe-step">
+        <div class="pipe-num">6</div>
+        <div><div class="pipe-label">Analytics Compute</div><div class="pipe-desc">Cache dept / guild / location breakdowns, benchmarks &rarr; analytics_cache table</div></div>
+      </div>
+    </div>
+    <p style="text-align:center; font-size:16px; color:var(--muted); margin-top:8px;">
+      All pre-processing is <strong>deterministic</strong>. No LLM involved until analysis is triggered.
+    </p>
+  </div>
+
+  <!-- =========== SLIDE 4: MULTI-LLM =========== -->
+  <div class="slide" data-slide="3">
+    <h3>Multi-LLM Architecture</h3>
+    <h2>Provider-agnostic agent layer</h2>
+    <hr class="divider">
+    <pre>
+<span class="dim">// Agents define WHAT to analyze, not WHICH model to use</span>
+
+<span class="gold">Agent Layer</span>
+  <span class="blue">WolfAgent</span>  &middot;  <span class="red">MirrorAgent</span>  &middot;  <span class="green">FixerAgent</span>
+        &darr;              &darr;              &darr;
+   <span class="fn">callLlm</span>()  &mdash;&mdash;&mdash;  <span class="gold">unified interface</span>  &mdash;&mdash;&mdash;  <span class="fn">withRetry</span>()
+        &darr;
+  &#9484;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&#9488;
+  &mid;  <span class="gold">LLM Router</span>      &mid;
+  &mid;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mid;
+  &mid;  <span class="blue">Claude API</span>  &larr; default  &mid;
+  &mid;  <span class="green">OpenAI API</span>          &mid;
+  &mid;  <span class="red">Gemini API</span>          &mid;
+  &mid;  <span class="dim">Local (Ollama)</span>      &mid;
+  &#9492;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&#9496;
+    </pre>
+    <div class="card-row" style="margin-top:8px;">
+      <div class="card" style="padding:16px; border-left:3px solid var(--gold);">
+        <p style="margin:0;"><strong>Agents own the prompts + schemas</strong> &mdash; not the model selection</p>
+      </div>
+      <div class="card" style="padding:16px; border-left:3px solid var(--blood);">
+        <p style="margin:0;"><strong>3 retries, exponential backoff</strong> &mdash; per-call resilience</p>
+      </div>
+      <div class="card" style="padding:16px; border-left:3px solid var(--green);">
+        <p style="margin:0;"><strong>Model configurable per tenant</strong> &mdash; or per agent type</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========== SLIDE 5: DUAL AGENT FLOW =========== -->
+  <div class="slide" data-slide="4">
+    <h3>Cross-Validation Pipeline</h3>
+    <h2>Two independent LLMs, one deterministic verdict</h2>
+    <hr class="divider">
+    <div class="agent-split">
+      <div class="agent-box wolf-box">
+        <div class="agent-title">LLM #1 &mdash; Wolf Agent</div>
+        <p><strong>Role:</strong> Primary analyst. Finds structural issues.</p>
+        <p><strong>Output schema:</strong></p>
+        <p><code>finding</code> <code>severity</code> <code>recommendation</code> <code>impactEstimate</code></p>
+        <p style="margin-top:8px; margin-bottom:0;"><strong>Sees:</strong> anonymized summary only</p>
+      </div>
+      <div class="agent-box mirror-box">
+        <div class="agent-title">LLM #2 &mdash; Mirror Agent</div>
+        <p><strong>Role:</strong> Adversarial challenger. Stress-tests every finding.</p>
+        <p><strong>Output schema:</strong></p>
+        <p><code>agrees</code> <code>challenges[]</code> <code>riskFlags[]</code> <code>alternativeView</code></p>
+        <p style="margin-top:8px; margin-bottom:0;"><strong>Sees:</strong> same summary + Wolf's findings</p>
+      </div>
+    </div>
+    <p style="text-align:center; font-size:16px; color:var(--muted); margin:10px 0 6px;">
+      Agents run <strong>independently</strong> &mdash; no shared context, no chain-of-thought leak &darr;
+    </p>
+    <div class="verdict-bar">
+      <div class="verdict-tag v">VALIDATED</div>
+      <div class="verdict-tag c">CONTESTED</div>
+      <div class="verdict-tag n">NEEDS_DATA</div>
+      <div class="verdict-tag r">REJECTED</div>
+    </div>
+    <p style="text-align:center; font-size:16px; color:var(--muted); margin:0;">
+      <strong>Consensus engine is pure JS</strong> &mdash; 7 deterministic rules, zero LLM in the verdict loop
+    </p>
+  </div>
+
+  <!-- =========== SLIDE 6: CONSENSUS RULES =========== -->
+  <div class="slide" data-slide="5">
+    <h3>Consensus Engine</h3>
+    <h2>No LLM decides the final verdict</h2>
+    <hr class="divider">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Condition</th><th>Verdict</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>Mirror agrees + confidence &ge; 80%</td><td style="color:var(--green); font-weight:700;">VALIDATED</td></tr>
+        <tr><td>2</td><td>Mirror agrees + confidence 60&ndash;79%</td><td style="color:var(--green);">VALIDATED <span class="muted">(reduced)</span></td></tr>
+        <tr><td>3</td><td>Mirror partially agrees, flags risks</td><td style="color:#b8941f; font-weight:700;">CONTESTED</td></tr>
+        <tr><td>4</td><td>Mirror disagrees but Wolf confidence &ge; 90%</td><td style="color:#b8941f;">CONTESTED</td></tr>
+        <tr><td>5</td><td>Mirror disagrees + Wolf confidence &lt; 60%</td><td style="color:var(--blue); font-weight:700;">NEEDS_DATA</td></tr>
+        <tr><td>6</td><td>Mirror provides counter-evidence</td><td style="color:var(--blue);">NEEDS_DATA</td></tr>
+        <tr><td>7</td><td>Mirror disproves or confidence &lt; 40%</td><td style="color:var(--blood); font-weight:700;">REJECTED</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:16px; color:var(--muted); margin-top:12px;">
+      Output per insight: <strong>consensus tag</strong> + <strong>merged confidence</strong> + <strong>severity</strong> + <strong>synthesized summary</strong> + <strong>recommendations</strong>
+    </p>
+  </div>
+
+  <!-- =========== SLIDE 7: ZERO-TRUST DATA FLOW =========== -->
+  <div class="slide" data-slide="6">
+    <h3>Zero-Trust Data Flow</h3>
+    <h2>What data goes where</h2>
+    <hr class="divider">
+    <div class="sec-flow">
+      <div class="sec-step">
+        <div class="sec-icon" style="background:var(--gold-bg); border:2px solid var(--gold);">&#128196;</div>
+        <div><p><strong>Raw Data</strong> (XLSX/CSV) &mdash; uploaded by user, stored temporarily</p></div>
+      </div>
+      <div class="sec-arrow">&darr;</div>
+      <div class="sec-step">
+        <div class="sec-icon" style="background:var(--blood-light); border:2px solid var(--blood);">&#9986;</div>
+        <div><p><strong>PII Stripper</strong> &mdash; removes name, email, SSN fields from <code class="mono" style="font-size:13px;">raw_data</code> JSON</p></div>
+      </div>
+      <div class="sec-arrow">&darr;</div>
+      <div class="sec-step">
+        <div class="sec-icon" style="background:var(--blue-bg); border:2px solid var(--blue);">&#128272;</div>
+        <div><p><strong>PII Encryptor</strong> &mdash; AES-256-GCM on <code class="mono" style="font-size:13px;">employees.name</code> column (unique IV per record)</p></div>
+      </div>
+      <div class="sec-arrow">&darr;</div>
+      <div class="sec-step">
+        <div class="sec-icon" style="background:var(--green-bg); border:2px solid var(--green);">&#128202;</div>
+        <div><p><strong>Pre-Processor</strong> &mdash; outputs <strong>anonymized summary</strong>: counts, ratios, distributions. No names. No individuals.</p></div>
+      </div>
+      <div class="sec-arrow">&darr;</div>
+      <div class="sec-step" style="border:2px solid var(--dark); background:#f9f9f6;">
+        <div class="sec-icon" style="background:var(--dark); color:var(--gold);">&#129302;</div>
+        <div><p><strong>LLM Agents</strong> &mdash; receive <strong>ONLY</strong> the anonymized summary. Never see raw data, PII, or individual employees.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========== SLIDE 8: PII ENCRYPTION =========== -->
+  <div class="slide" data-slide="7">
+    <h3>PII Encryption</h3>
+    <h2>Defense in depth for sensitive data</h2>
+    <hr class="divider">
+    <div class="card-row">
+      <div class="card" style="border-top:4px solid var(--blood); padding:20px;">
+        <h3 style="color:var(--blood); font-size:20px;">Layer 1 &mdash; Strip</h3>
+        <p><code class="mono" style="font-size:13px;">stripPII()</code> removes name/email/SSN from <code class="mono" style="font-size:13px;">raw_data</code> JSON before DB write</p>
+        <p style="margin:0; color:var(--muted); font-size:15px;">Regex-based field detection &mdash; runs on every record</p>
+      </div>
+      <div class="card" style="border-top:4px solid var(--blue); padding:20px;">
+        <h3 style="color:var(--blue); font-size:20px;">Layer 2 &mdash; Encrypt</h3>
+        <p>AES-256-GCM on <code class="mono" style="font-size:13px;">employees.name</code> column</p>
+        <p style="margin:0; color:var(--muted); font-size:15px;">256-bit key &middot; unique 12-byte IV per record &middot; auth tag stored alongside</p>
+      </div>
+      <div class="card" style="border-top:4px solid var(--green); padding:20px;">
+        <h3 style="color:var(--green); font-size:20px;">Layer 3 &mdash; Anonymize</h3>
+        <p>Pre-processor outputs only aggregate statistics</p>
+        <p style="margin:0; color:var(--muted); font-size:15px;">Dept headcounts, not rosters &middot; Distributions, not org charts</p>
+      </div>
+    </div>
+    <pre style="margin-top:16px;">
+<span class="cm">// Encryption format stored in DB</span>
+<span class="str">"iv:authTag:ciphertext"</span>  <span class="cm">// base64 encoded</span>
+
+<span class="cm">// Example</span>
+<span class="str">"mK9x2f...</span>:<span class="str">j8Hp3...</span>:<span class="str">aB7kLm..."</span>  <span class="cm">→  "Lionel Messi"</span>
+    </pre>
+  </div>
+
+  <!-- =========== SLIDE 9: MULTI-TENANT =========== -->
+  <div class="slide" data-slide="8">
+    <h3>Multi-Tenant Isolation</h3>
+    <h2>Every query scoped to tenant</h2>
+    <hr class="divider">
+    <pre>
+<span class="cm">-- Every table has tenant_id column</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="type">employees</span>
+<span class="kw">WHERE</span> <span class="fn">tenant_id</span> = <span class="str">$1</span> <span class="kw">AND</span> <span class="fn">dataset_id</span> = <span class="str">$2</span>;
+
+<span class="cm">-- PostgreSQL RLS policies (safety net)</span>
+<span class="kw">CREATE POLICY</span> <span class="fn">tenant_isolation</span> <span class="kw">ON</span> <span class="type">employees</span>
+  <span class="kw">USING</span> (<span class="fn">tenant_id</span> = <span class="fn">current_setting</span>(<span class="str">'app.tenant_id'</span>)::<span class="type">uuid</span>);
+    </pre>
+    <div class="card-row" style="margin-top:16px;">
+      <div class="card" style="border-left:3px solid var(--gold); padding:18px;">
+        <h3 style="color:var(--dark); font-size:18px;">Middleware</h3>
+        <p style="margin:0;">Resolves tenant from <code class="mono" style="font-size:13px;">X-Tenant-Id</code> header. Injected into every request context.</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--blue); padding:18px;">
+        <h3 style="color:var(--dark); font-size:18px;">ORM Layer</h3>
+        <p style="margin:0;">Every Drizzle query includes <code class="mono" style="font-size:13px;">eq(table.tenantId, tenantId)</code> in WHERE clause.</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--blood); padding:18px;">
+        <h3 style="color:var(--dark); font-size:18px;">Audit</h3>
+        <p style="margin:0;">Immutable <code class="mono" style="font-size:13px;">audit_log</code> table captures every action per tenant. Full compliance trail.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========== SLIDE 10: DB SCHEMA =========== -->
+  <div class="slide" data-slide="9">
+    <h3>Database Schema</h3>
+    <h2>13 tables &middot; Drizzle ORM &middot; PostgreSQL</h2>
+    <hr class="divider">
+    <div class="schema-tree">
+<span class="tbl">tenants</span> <span class="rel">&mdash;&mdash;&#9472;&#9488;</span>
+         <span class="rel">&#9500;&#9472;&#9472;</span> <span class="tbl">users</span>
+         <span class="rel">&#9500;&#9472;&#9472;</span> <span class="tbl">datasets</span> <span class="rel">&mdash;&#9472;&#9488;</span>
+         <span class="rel">&#9474;</span>              <span class="rel">&#9500;&#9472;&#9472;</span> <span class="tbl">employees</span> <span class="rel">&rarr;</span> <span class="tbl">employee_paths</span>
+         <span class="rel">&#9474;</span>              <span class="rel">&#9500;&#9472;&#9472;</span> <span class="tbl">performance_datasets</span> <span class="rel">&rarr;</span> <span class="tbl">performance_metrics</span>
+         <span class="rel">&#9474;</span>              <span class="rel">&#9500;&#9472;&#9472;</span> <span class="tbl">context_documents</span>
+         <span class="rel">&#9474;</span>              <span class="rel">&#9500;&#9472;&#9472;</span> <span class="tbl">analyses</span> <span class="rel">&mdash;&#9472;&#9488;</span>
+         <span class="rel">&#9474;</span>              <span class="rel">&#9474;</span>            <span class="rel">&#9500;&#9472;&#9472;</span> <span class="tbl">insights</span>
+         <span class="rel">&#9474;</span>              <span class="rel">&#9474;</span>            <span class="rel">&#9492;&#9472;&#9472;</span> <span class="tbl">fix_plans</span>
+         <span class="rel">&#9474;</span>              <span class="rel">&#9492;&#9472;&#9472;</span> <span class="tbl">analytics_cache</span>
+         <span class="rel">&#9492;&#9472;&#9472;</span> <span class="tbl">audit_log</span>
+    </div>
+    <div class="card-row" style="margin-top:12px;">
+      <div class="card" style="padding:14px; border-left:3px solid var(--gold);">
+        <p style="margin:0; font-size:15px;"><strong>UUID PKs</strong> &mdash; <code class="mono" style="font-size:12px;">defaultRandom()</code></p>
+      </div>
+      <div class="card" style="padding:14px; border-left:3px solid var(--blue);">
+        <p style="margin:0; font-size:15px;"><strong>JSONB</strong> &mdash; raw_data, config, plan, wolf/mirror output</p>
+      </div>
+      <div class="card" style="padding:14px; border-left:3px solid var(--green);">
+        <p style="margin:0; font-size:15px;"><strong>Composite indexes</strong> &mdash; (tenant_id, dataset_id) on hot paths</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========== SLIDE 11: QUEUE ARCHITECTURE =========== -->
+  <div class="slide" data-slide="10">
+    <h3>Queue Architecture</h3>
+    <h2>BullMQ + Redis &mdash; reliable job processing</h2>
+    <hr class="divider">
+    <div class="agent-split">
+      <div class="agent-box wolf-box" style="border-color:var(--gold);">
+        <div class="agent-title" style="color:var(--gold);">analysis-pipeline</div>
+        <p><strong>Concurrency:</strong> 2 parallel workers</p>
+        <p><strong>Rate limit:</strong> 5 jobs / minute</p>
+        <p><strong>Retries:</strong> 3 attempts, exponential backoff</p>
+        <p style="margin-bottom:0;"><strong>Runs:</strong> Wolf + Mirror + Consensus</p>
+      </div>
+      <div class="agent-box mirror-box" style="border-color:var(--blue);">
+        <div class="agent-title" style="color:var(--blue);">fix-plan-pipeline</div>
+        <p><strong>Concurrency:</strong> 1 worker</p>
+        <p><strong>Rate limit:</strong> none (on-demand)</p>
+        <p><strong>Retries:</strong> 2 attempts, 5s base backoff</p>
+        <p style="margin-bottom:0;"><strong>Runs:</strong> Fixer agent</p>
+      </div>
+    </div>
+    <pre style="margin-top:16px;">
+<span class="cm">// Job lifecycle</span>
+API <span class="op">&rarr;</span> <span class="fn">db.insert</span>(status: <span class="str">"queued"</span>)
+    <span class="op">&rarr;</span> <span class="fn">queue.add</span>({ analysisId, tenantId })
+    <span class="op">&rarr;</span> Worker picks up <span class="op">&rarr;</span> status: <span class="str">"running"</span>
+    <span class="op">&rarr;</span> Success <span class="op">&rarr;</span> status: <span class="str">"completed"</span> + store results
+    <span class="op">&rarr;</span> Failure <span class="op">&rarr;</span> retry <span class="num">3x</span> <span class="op">&rarr;</span> status: <span class="str">"failed"</span>
+    </pre>
+  </div>
+
+  <!-- =========== SLIDE 12: MIDDLEWARE STACK =========== -->
+  <div class="slide" data-slide="11">
+    <h3>API Design</h3>
+    <h2>Hono middleware stack</h2>
+    <hr class="divider">
+    <div style="display:flex; gap:32px; align-items:flex-start;">
+      <div class="mw-stack" style="flex:1;">
+        <div class="mw-layer" style="background:var(--dark); border-color:var(--dark);">
+          <span class="mw-arrow" style="color:var(--gold);">&rarr;</span>
+          <span class="mw-name" style="color:var(--gold);">Request In</span>
+        </div>
+        <div class="mw-layer">
+          <span class="mw-arrow">&rarr;</span>
+          <span class="mw-name">securityHeaders</span>
+          <span class="mw-desc">HSTS, CSP, X-Frame-Options</span>
+        </div>
+        <div class="mw-layer">
+          <span class="mw-arrow">&rarr;</span>
+          <span class="mw-name">cors</span>
+          <span class="mw-desc">Explicit origins, preflight cache</span>
+        </div>
+        <div class="mw-layer">
+          <span class="mw-arrow">&rarr;</span>
+          <span class="mw-name">requestId</span>
+          <span class="mw-desc">X-Request-Id on every response</span>
+        </div>
+        <div class="mw-layer">
+          <span class="mw-arrow">&rarr;</span>
+          <span class="mw-name">errorHandler</span>
+          <span class="mw-desc">Catch-all, structured JSON errors</span>
+        </div>
+        <div class="mw-layer">
+          <span class="mw-arrow">&rarr;</span>
+          <span class="mw-name">tenantMiddleware</span>
+          <span class="mw-desc">Resolve X-Tenant-Id header</span>
+        </div>
+        <div class="mw-layer">
+          <span class="mw-arrow">&rarr;</span>
+          <span class="mw-name">authMiddleware</span>
+          <span class="mw-desc">Bearer token validation</span>
+        </div>
+        <div class="mw-layer">
+          <span class="mw-arrow">&rarr;</span>
+          <span class="mw-name">rateLimiter</span>
+          <span class="mw-desc">100 req/min API, 5/5min analysis</span>
+        </div>
+        <div class="mw-layer">
+          <span class="mw-arrow">&rarr;</span>
+          <span class="mw-name">auditMiddleware</span>
+          <span class="mw-desc">Log action to audit_log</span>
+        </div>
+        <div class="mw-layer" style="background:var(--gold-bg); border-color:var(--gold);">
+          <span class="mw-arrow" style="color:var(--gold);">&rarr;</span>
+          <span class="mw-name" style="color:var(--gold);">Route Handler</span>
+        </div>
+      </div>
+      <div style="flex:1; padding-top:8px;">
+        <p style="font-size:17px; margin-bottom:16px;">
+          <strong>Route ordering matters in Hono:</strong> specific routes (e.g. <code class="mono" style="font-size:13px;">/org-tree</code>) must come before catch-all <code class="mono" style="font-size:13px;">/:param</code> routes.
+        </p>
+        <p style="font-size:17px; margin-bottom:16px;">
+          <strong>Typed context:</strong> <code class="mono" style="font-size:13px;">AppEnv</code> interface ensures <code class="mono" style="font-size:13px;">c.get("tenantId")</code> is always available after middleware.
+        </p>
+        <p style="font-size:17px; margin-bottom:16px;">
+          <strong>Zod validation</strong> on all mutation endpoints &mdash; reject bad input before it reaches business logic.
+        </p>
+        <p style="font-size:17px;">
+          <strong>File upload:</strong> 50MB limit, xlsx/csv only, validated at middleware level.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========== SLIDE 13: FRONTEND =========== -->
+  <div class="slide" data-slide="12">
+    <h3>Frontend Architecture</h3>
+    <h2>Next.js 14 App Router</h2>
+    <hr class="divider">
+    <div class="card-row">
+      <div class="card" style="border-top:3px solid var(--blue); padding:18px;">
+        <h3 style="color:var(--dark); font-size:18px;">Routing</h3>
+        <ul>
+          <li>Chapter-based navigation (I&ndash;IX)</li>
+          <li>Mobile-responsive hamburger drawer</li>
+          <li>Dynamic <code class="mono" style="font-size:12px;">[datasetId]</code> segments</li>
+        </ul>
+      </div>
+      <div class="card" style="border-top:3px solid var(--gold); padding:18px;">
+        <h3 style="color:var(--dark); font-size:18px;">Performance</h3>
+        <ul>
+          <li>react-window v2 &mdash; 50K+ org nodes</li>
+          <li>Lazy child loading via API</li>
+          <li>3s polling for async job status</li>
+        </ul>
+      </div>
+      <div class="card" style="border-top:3px solid var(--green); padding:18px;">
+        <h3 style="color:var(--dark); font-size:18px;">Data Layer</h3>
+        <ul>
+          <li>Typed fetch wrapper with error handling</li>
+          <li>Tenant + auth headers on every call</li>
+          <li>PDF: POST &rarr; blob &rarr; download link</li>
+        </ul>
+      </div>
+    </div>
+    <pre style="margin-top:16px;">
+<span class="cm">// App structure</span>
+app/
+  (dashboard)/
+    page.tsx                  <span class="cm">// Ch.I   THE BRIEFING</span>
+    layout.tsx                <span class="cm">// Sidebar + chapter nav</span>
+    [datasetId]/
+      page.tsx                <span class="cm">// Ch.II  THE SITUATION</span>
+      org-chart/page.tsx      <span class="cm">// Ch.III THE BODIES</span>
+      data/page.tsx           <span class="cm">// Ch.IV  THE EVIDENCE</span>
+      analyze/page.tsx        <span class="cm">// Ch.V   THE HIT</span>
+      insights/page.tsx       <span class="cm">// Ch.VI  THE VERDICT</span>
+      export/page.tsx         <span class="cm">// Ch.VII THE CLEANUP</span>
+      focus/page.tsx          <span class="cm">// Ch.VIII THE INTERROGATION</span>
+      fix/page.tsx            <span class="cm">// Ch.IX  THE FIXING</span>
+    </pre>
+  </div>
+
+  <!-- =========== SLIDE 14: CLOSING =========== -->
+  <div class="slide closing-slide" data-slide="13">
+    <h1>THE WOLF</h1>
+    <div class="subtitle">Technical Architecture</div>
+    <div class="tech-tags">
+      <span>Provider-agnostic agents</span> &middot; AES-256-GCM encryption &middot; <span>Anonymized analysis</span><br>
+      Deterministic consensus &middot; <span>PostgreSQL RLS</span> &middot; BullMQ orchestration<br>
+      Multi-tenant isolation &middot; <span>Zero-trust data flow</span> &middot; Immutable audit trail
+    </div>
+  </div>
+
+</div>
+
+<!-- Nav -->
+<div class="nav">
+  <button id="prev" aria-label="Previous slide">&#8592;</button>
+  <button id="next" aria-label="Next slide">&#8594;</button>
+</div>
+<div class="progress" id="progress"></div>
+<div class="slide-counter" id="counter"></div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  function goTo(n) {
+    if (n < 0 || n >= total) return;
+    slides[current].classList.remove('active');
+    current = n;
+    slides[current].classList.add('active');
+    document.getElementById('progress').style.width = ((current + 1) / total * 100) + '%';
+    document.getElementById('counter').textContent = (current + 1) + ' / ' + total;
+    const counter = document.getElementById('counter');
+    const isDark = slides[current].classList.contains('closing-slide');
+    counter.style.color = isDark ? '#555' : '';
+    document.querySelectorAll('.nav button').forEach(b => {
+      b.style.borderColor = isDark ? '#444' : '';
+      b.style.background = isDark ? '#2a2a2a' : '';
+      b.style.color = isDark ? '#999' : '';
+    });
+  }
+
+  document.getElementById('prev').addEventListener('click', () => goTo(current - 1));
+  document.getElementById('next').addEventListener('click', () => goTo(current + 1));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); goTo(current - 1); }
+    if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+    if (e.key === 'End') { e.preventDefault(); goTo(total - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) { diff > 0 ? goTo(current + 1) : goTo(current - 1); }
+  });
+
+  goTo(0);
+</script>
+</body>
+</html>
