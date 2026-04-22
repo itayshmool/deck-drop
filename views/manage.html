@@ -444,6 +444,11 @@
         <input type="password" id="renderApiKey" autocomplete="off" placeholder="Leave blank to keep current">
         <div class="hint">Get from https://dashboard.render.com/account/api-keys</div>
       </div>
+      <div class="field">
+        <label>Auth Secret (shared signing key)</label>
+        <input type="password" id="authSecret" autocomplete="off" placeholder="Auto-generated on first deploy">
+        <div class="hint">Shared between auth proxy and all decks. Auto-generated if empty.</div>
+      </div>
       <div class="btn-row">
         <button class="btn-ghost" onclick="closeModal('settingsModal')">Cancel</button>
         <button class="btn-primary" onclick="saveSettings()">Save</button>
@@ -658,6 +663,8 @@
             <div><span class="badge">✓</span> Google OAuth: <code style="color: #cbd5e1;">${config.googleClientId}</code></div>
             <div><span class="badge">✓</span> Admins: <code style="color: #cbd5e1;">${escapeHtml(config.adminEmails)}</code></div>
             <div><span class="badge">✓</span> Render API: configured</div>
+            <div><span class="badge">${config.hasAuthSecret ? '✓' : '○'}</span> Auth Secret: ${config.hasAuthSecret ? 'configured' : 'will be auto-generated'}</div>
+            <div><span class="badge">✓</span> Auth Proxy: <code style="color: #cbd5e1;">${escapeHtml(config.authServiceUrl)}</code></div>
           </div>`;
       }
       openModal('deployModal');
@@ -720,8 +727,10 @@
       document.getElementById('gClientSecret').value = '';
       document.getElementById('adminEmails').value = config.adminEmails || '';
       document.getElementById('renderApiKey').value = '';
+      document.getElementById('authSecret').value = '';
       document.getElementById('gClientSecret').placeholder = config.hasGoogleSecret ? 'Configured — leave blank to keep' : 'Enter secret';
       document.getElementById('renderApiKey').placeholder = config.hasRenderApiKey ? 'Configured — leave blank to keep' : 'Enter API key';
+      document.getElementById('authSecret').placeholder = config.hasAuthSecret ? 'Configured — leave blank to keep' : 'Auto-generated on first deploy';
       openModal('settingsModal');
     }
 
@@ -730,7 +739,8 @@
         googleClientId: document.getElementById('gClientId').value.trim(),
         googleClientSecret: document.getElementById('gClientSecret').value.trim(),
         adminEmails: document.getElementById('adminEmails').value.trim(),
-        renderApiKey: document.getElementById('renderApiKey').value.trim()
+        renderApiKey: document.getElementById('renderApiKey').value.trim(),
+        authSecret: document.getElementById('authSecret').value.trim()
       };
       try {
         await api('PUT', '/api/config', body);

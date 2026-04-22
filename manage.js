@@ -15,6 +15,8 @@ const DECKS_DIR = path.join(__dirname, 'decks');
 const CONFIG_FILE = path.join(__dirname, '.manage.env');
 const REPO_URL = 'https://github.com/itayshmool/online-decks';
 const RENDER_OWNER_ID = 'tea-d4o0qcn5r7bs73cbu0pg';
+const AUTH_SERVICE_NAME = 'online-decks-auth';
+const AUTH_SERVICE_URL = `https://${AUTH_SERVICE_NAME}.onrender.com`;
 
 app.use(express.json({ limit: '50mb' }));
 
@@ -88,6 +90,52 @@ function renderApi(method, urlPath, body) {
     if (data) req.write(data);
     req.end();
   });
+}
+
+// --- Auth proxy deploy helper ---
+async function ensureAuthProxy(config) {
+  // Check if auth proxy service already exists
+  const services = await renderApi('GET', `/v1/services?name=${AUTH_SERVICE_NAME}&ownerId=${RENDER_OWNER_ID}`);
+  const list = Array.isArray(services) ? services : [];
+  const existing = list.find(s => (s.service || s).name === AUTH_SERVICE_NAME);
+  if (existing) {
+    return { skipped: true, url: AUTH_SERVICE_URL };
+  }
+
+  // Ensure AUTH_SECRET exists in config
+  if (!config.AUTH_SECRET) {
+    config.AUTH_SECRET = crypto.randomBytes(32).toString('hex');
+    writeConfig({ AUTH_SECRET: config.AUTH_SECRET });
+  }
+
+  const serviceBody = {
+    autoDeploy: 'yes',
+    branch: 'main',
+    name: AUTH_SERVICE_NAME,
+    ownerId: RENDER_OWNER_ID,
+    repo: REPO_URL,
+    type: 'web_service',
+    envVars: [
+      { key: 'GOOGLE_CLIENT_ID', value: config.GOOGLE_CLIENT_ID },
+      { key: 'GOOGLE_CLIENT_SECRET', value: config.GOOGLE_CLIENT_SECRET },
+      { key: 'AUTH_SECRET', value: config.AUTH_SECRET },
+      { key: 'CALLBACK_URL', value: `${AUTH_SERVICE_URL}/auth/google/callback` },
+      { key: 'NODE_ENV', value: 'production' }
+    ],
+    serviceDetails: {
+      runtime: 'node',
+      env: 'node',
+      plan: 'starter',
+      region: 'frankfurt',
+      numInstances: 1,
+      envSpecificDetails: {
+        buildCommand: 'npm install',
+        startCommand: 'node auth-proxy.js'
+      }
+    }
+  };
+  await renderApi('POST', '/v1/services', serviceBody);
+  return { skipped: false, url: AUTH_SERVICE_URL };
 }
 
 // --- Git helpers ---
@@ -285,9 +333,18 @@ app.post('/api/decks/:slug/deploy', async (req, res) => {
   try {
     const meta = readDeckMeta(slug);
     const serviceName = toServiceName(slug);
-    const callbackUrl = `https://${serviceName}.onrender.com/auth/google/callback`;
 
-    // 1. Git operations
+    // 1. Ensure shared auth proxy exists
+    steps.push({ step: 'auth-proxy', status: 'running' });
+    const authResult = await ensureAuthProxy(config);
+    // Re-read config in case AUTH_SECRET was just generated
+    const freshConfig = readConfig();
+    steps[steps.length - 1].status = authResult.skipped ? 'skipped' : 'done';
+    steps[steps.length - 1].message = authResult.skipped
+      ? `Auth proxy already running at ${authResult.url}`
+      : `Created auth proxy at ${authResult.url}`;
+
+    // 2. Git operations
     steps.push({ step: 'git-add', status: 'running' });
     git(`add decks/${slug}/`);
     steps[steps.length - 1].status = 'done';
@@ -308,7 +365,7 @@ app.post('/api/decks/:slug/deploy', async (req, res) => {
     git('push origin main');
     steps[steps.length - 1].status = 'done';
 
-    // 2. If renderUrl already set, skip service creation (auto-deploy handles it)
+    // 3. If renderUrl already set, skip service creation (auto-deploy handles it)
     if (meta.renderUrl) {
       steps.push({
         step: 'render-service',
@@ -318,7 +375,7 @@ app.post('/api/decks/:slug/deploy', async (req, res) => {
       return res.json({ success: true, steps, renderUrl: meta.renderUrl });
     }
 
-    // 3. Create Render service
+    // 4. Create Render service with shared auth proxy config
     steps.push({ step: 'render-service', status: 'running' });
     const sessionSecret = crypto.randomBytes(32).toString('hex');
     const serviceBody = {
@@ -330,13 +387,12 @@ app.post('/api/decks/:slug/deploy', async (req, res) => {
       type: 'web_service',
       envVars: [
         { key: 'DECK_NAME', value: slug },
-        { key: 'GOOGLE_CLIENT_ID', value: config.GOOGLE_CLIENT_ID },
-        { key: 'GOOGLE_CLIENT_SECRET', value: config.GOOGLE_CLIENT_SECRET },
+        { key: 'AUTH_SERVICE_URL', value: AUTH_SERVICE_URL },
+        { key: 'AUTH_SECRET', value: freshConfig.AUTH_SECRET },
         { key: 'SESSION_SECRET', value: sessionSecret },
-        { key: 'ADMIN_EMAILS', value: config.ADMIN_EMAILS },
+        { key: 'ADMIN_EMAILS', value: freshConfig.ADMIN_EMAILS },
         { key: 'NODE_ENV', value: 'production' },
-        { key: 'DATA_DIR', value: '/var/data' },
-        { key: 'CALLBACK_URL', value: callbackUrl }
+        { key: 'DATA_DIR', value: '/var/data' }
       ],
       serviceDetails: {
         runtime: 'node',
@@ -344,6 +400,7 @@ app.post('/api/decks/:slug/deploy', async (req, res) => {
         plan: 'starter',
         region: 'frankfurt',
         numInstances: 1,
+        disk: { name: 'disk', mountPath: '/var/data', sizeGB: 1 },
         envSpecificDetails: {
           buildCommand: 'npm install',
           startCommand: 'node server.js'
@@ -358,7 +415,7 @@ app.post('/api/decks/:slug/deploy', async (req, res) => {
     steps[steps.length - 1].status = 'done';
     steps[steps.length - 1].message = renderUrl;
 
-    // 4. Save renderUrl to deck.json
+    // 5. Save renderUrl to deck.json
     writeDeckMeta(slug, { ...meta, renderUrl });
     try {
       git(`add decks/${slug}/deck.json`);
@@ -370,12 +427,7 @@ app.post('/api/decks/:slug/deploy', async (req, res) => {
       success: true,
       steps,
       renderUrl,
-      callbackUrl,
-      dashboardUrl: service.dashboardUrl || null,
-      reminders: [
-        `Add redirect URI to Google Cloud Console: ${callbackUrl}`,
-        `Add persistent disk in Render dashboard: mount /var/data, size 1GB`
-      ]
+      dashboardUrl: service.dashboardUrl || null
     });
   } catch (err) {
     if (steps.length) steps[steps.length - 1].status = 'error';
@@ -390,17 +442,20 @@ app.get('/api/config', (req, res) => {
     googleClientId: c.GOOGLE_CLIENT_ID ? mask(c.GOOGLE_CLIENT_ID) : '',
     hasGoogleSecret: !!c.GOOGLE_CLIENT_SECRET,
     adminEmails: c.ADMIN_EMAILS || '',
-    hasRenderApiKey: !!c.RENDER_API_KEY
+    hasRenderApiKey: !!c.RENDER_API_KEY,
+    hasAuthSecret: !!c.AUTH_SECRET,
+    authServiceUrl: AUTH_SERVICE_URL
   });
 });
 
 app.put('/api/config', (req, res) => {
-  const { googleClientId, googleClientSecret, adminEmails, renderApiKey } = req.body;
+  const { googleClientId, googleClientSecret, adminEmails, renderApiKey, authSecret } = req.body;
   const updates = {};
   if (googleClientId) updates.GOOGLE_CLIENT_ID = googleClientId.trim();
   if (googleClientSecret) updates.GOOGLE_CLIENT_SECRET = googleClientSecret.trim();
   if (adminEmails) updates.ADMIN_EMAILS = adminEmails.trim();
   if (renderApiKey) updates.RENDER_API_KEY = renderApiKey.trim();
+  if (authSecret) updates.AUTH_SECRET = authSecret.trim();
   writeConfig(updates);
   res.json({ success: true });
 });

@@ -4,6 +4,7 @@ const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const crypto = require('crypto');
 const path = require('path');
 
 // --- Deck resolution ---
@@ -21,6 +22,23 @@ const { requireAuth, requireAdmin, readUsers, writeUsers, isAdmin, ADMIN_EMAILS 
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL; // shared auth proxy
+const AUTH_SECRET = process.env.AUTH_SECRET;
+
+// Verify a signed token from the auth proxy
+function verifyToken(tokenStr) {
+  if (!AUTH_SECRET) return null;
+  try {
+    const { data, sig } = JSON.parse(Buffer.from(tokenStr, 'base64url').toString());
+    const expected = crypto.createHmac('sha256', AUTH_SECRET).update(data).digest('hex');
+    if (sig !== expected) return null;
+    const payload = JSON.parse(data);
+    if (payload.exp < Date.now()) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
 
 // Trust Render's reverse proxy (required for secure cookies)
 app.set('trust proxy', 1);
@@ -36,19 +54,22 @@ function sendView(res, viewName) {
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((user, done) => done(null, user));
 
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: process.env.CALLBACK_URL || `http://localhost:${PORT}/auth/google/callback`
-}, (accessToken, refreshToken, profile, done) => {
-  const email = profile.emails && profile.emails[0] && profile.emails[0].value;
-  done(null, {
-    id: profile.id,
-    email: email,
-    name: profile.displayName,
-    photo: profile.photos && profile.photos[0] && profile.photos[0].value
-  });
-}));
+// Only configure Google Strategy for local dev (when no shared auth proxy)
+if (!AUTH_SERVICE_URL) {
+  passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: process.env.CALLBACK_URL || `http://localhost:${PORT}/auth/google/callback`
+  }, (accessToken, refreshToken, profile, done) => {
+    const email = profile.emails && profile.emails[0] && profile.emails[0].value;
+    done(null, {
+      id: profile.id,
+      email: email,
+      name: profile.displayName,
+      photo: profile.photos && profile.photos[0] && profile.photos[0].value
+    });
+  }));
+}
 
 // --- Middleware ---
 app.use(express.json());
@@ -70,22 +91,53 @@ app.get('/login', (req, res) => {
   sendView(res, 'login.html');
 });
 
-app.get('/auth/google', passport.authenticate('google', {
-  scope: ['profile', 'email']
-}));
+if (AUTH_SERVICE_URL) {
+  // Shared auth proxy mode: redirect to the proxy with our origin
+  app.get('/auth/google', (req, res) => {
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const authUrl = new URL('/auth/google', AUTH_SERVICE_URL);
+    authUrl.searchParams.set('origin', origin);
+    res.redirect(authUrl.toString());
+  });
 
-app.get('/auth/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login' }),
-  (req, res) => {
-    const email = req.user.email;
-    if (isAdmin(email)) return res.redirect('/');
-    const data = readUsers();
-    if (data.users.includes(email.toLowerCase())) {
-      return res.redirect('/');
+  // Receive signed token back from auth proxy
+  app.get('/auth/verify', (req, res) => {
+    const { token } = req.query;
+    if (!token) return res.redirect('/login');
+    const user = verifyToken(token);
+    if (!user) return res.redirect('/login');
+
+    // Create session (same shape as Passport user)
+    req.login({ email: user.email, name: user.name, photo: user.photo }, (err) => {
+      if (err) return res.redirect('/login');
+      const email = user.email;
+      if (isAdmin(email)) return res.redirect('/');
+      const data = readUsers();
+      if (data.users.includes(email.toLowerCase())) {
+        return res.redirect('/');
+      }
+      return res.redirect('/denied');
+    });
+  });
+} else {
+  // Local dev mode: direct Google OAuth
+  app.get('/auth/google', passport.authenticate('google', {
+    scope: ['profile', 'email']
+  }));
+
+  app.get('/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/login' }),
+    (req, res) => {
+      const email = req.user.email;
+      if (isAdmin(email)) return res.redirect('/');
+      const data = readUsers();
+      if (data.users.includes(email.toLowerCase())) {
+        return res.redirect('/');
+      }
+      return res.redirect('/denied');
     }
-    return res.redirect('/denied');
-  }
-);
+  );
+}
 
 app.get('/logout', (req, res) => {
   req.logout(() => {
