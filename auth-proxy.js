@@ -143,6 +143,10 @@ function usersPath(slug) {
   return path.join(DATA_DIR, slug, 'users.json');
 }
 
+function metaPath(slug) {
+  return path.join(DATA_DIR, slug, 'meta.json');
+}
+
 function readDeckUsers(slug) {
   try {
     return JSON.parse(fs.readFileSync(usersPath(slug), 'utf8'));
@@ -155,6 +159,20 @@ function writeDeckUsers(slug, data) {
   const dir = path.join(DATA_DIR, slug);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(usersPath(slug), JSON.stringify(data, null, 2) + '\n');
+}
+
+function readDeckMeta(slug) {
+  try {
+    return JSON.parse(fs.readFileSync(metaPath(slug), 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function writeDeckMeta(slug, data) {
+  const dir = path.join(DATA_DIR, slug);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(metaPath(slug), JSON.stringify(data, null, 2) + '\n');
 }
 
 // Check if email is whitelisted for a deck
@@ -202,6 +220,15 @@ app.put('/api/:slug/users', requireApiKey, (req, res) => {
   const cleaned = users.map(e => e.trim().toLowerCase()).filter(Boolean);
   writeDeckUsers(req.params.slug, { users: cleaned });
   res.json({ replaced: true, count: cleaned.length });
+});
+
+// Set deck metadata (renderUrl, etc.)
+app.put('/api/:slug/meta', requireApiKey, (req, res) => {
+  const { renderUrl } = req.body;
+  const meta = readDeckMeta(req.params.slug);
+  if (renderUrl) meta.renderUrl = renderUrl;
+  writeDeckMeta(req.params.slug, meta);
+  res.json({ updated: true, meta });
 });
 
 // Seed users (only writes if no users exist yet)
@@ -266,7 +293,8 @@ app.get('/admin/api/decks', requireAdmin, (req, res) => {
       .filter(slug => fs.existsSync(path.join(DATA_DIR, slug, 'users.json')));
     const decks = entries.map(slug => {
       const data = readDeckUsers(slug);
-      return { slug, userCount: data.users.length };
+      const meta = readDeckMeta(slug);
+      return { slug, userCount: data.users.length, renderUrl: meta.renderUrl || null };
     });
     res.json({ decks });
   } catch {

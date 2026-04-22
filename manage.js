@@ -93,6 +93,37 @@ function renderApi(method, urlPath, body) {
   });
 }
 
+// --- HTTP request helper (with timeout) ---
+function httpRequest(url, method, body, authSecret) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const transport = parsed.protocol === 'https:' ? https : http;
+    const req = transport.request({
+      hostname: parsed.hostname,
+      port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+      path: parsed.pathname,
+      method,
+      timeout: 30000,
+      headers: {
+        'Authorization': `Bearer ${authSecret}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    }, (res) => {
+      let chunks = '';
+      res.on('data', (c) => { chunks += c; });
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve(chunks);
+        else reject(new Error(`${res.statusCode}: ${chunks}`));
+      });
+    });
+    req.on('timeout', () => { req.destroy(); reject(new Error('Request timed out (30s)')); });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
 // --- Auth proxy deploy helper ---
 async function ensureAuthProxy(config) {
   // Check if auth proxy service already exists
@@ -417,46 +448,42 @@ app.post('/api/decks/:slug/deploy', async (req, res) => {
     steps[steps.length - 1].status = 'done';
     steps[steps.length - 1].message = renderUrl;
 
-    // 5. Seed users to auth proxy
+    // 5. Seed users to auth proxy (retries to handle cold starts)
     steps.push({ step: 'seed-users', status: 'running' });
     try {
       const seedData = readDeckSeed(slug);
       const seedUrl = `${AUTH_SERVICE_URL}/api/${slug}/seed`;
       const seedBody = JSON.stringify({ users: seedData.users });
-      await new Promise((resolve, reject) => {
-        const parsed = new URL(seedUrl);
-        const transport = parsed.protocol === 'https:' ? https : http;
-        const req = transport.request({
-          hostname: parsed.hostname,
-          port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
-          path: parsed.pathname,
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${freshConfig.AUTH_SECRET}`,
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(seedBody)
+      const maxRetries = 3;
+      let lastError;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          await httpRequest(seedUrl, 'PUT', seedBody, freshConfig.AUTH_SECRET);
+          lastError = null;
+          break;
+        } catch (e) {
+          lastError = e;
+          if (attempt < maxRetries) {
+            // Wait longer each retry to give cold-starting service time to spin up
+            await new Promise(r => setTimeout(r, attempt * 5000));
           }
-        }, (res) => {
-          let chunks = '';
-          res.on('data', (c) => { chunks += c; });
-          res.on('end', () => {
-            if (res.statusCode >= 200 && res.statusCode < 300) resolve(chunks);
-            else reject(new Error(`Seed failed ${res.statusCode}: ${chunks}`));
-          });
-        });
-        req.on('error', reject);
-        req.write(seedBody);
-        req.end();
-      });
+        }
+      }
+      if (lastError) throw lastError;
       steps[steps.length - 1].status = 'done';
       steps[steps.length - 1].message = `Seeded ${seedData.users.length} users to auth proxy`;
     } catch (e) {
-      steps[steps.length - 1].status = 'warning';
-      steps[steps.length - 1].message = `User seed failed (will retry on first login): ${e.message}`;
+      steps[steps.length - 1].status = 'error';
+      steps[steps.length - 1].message = `User seed failed after retries: ${e.message}`;
     }
 
-    // 6. Save renderUrl to deck.json
+    // 6. Save renderUrl to deck.json and to auth proxy
     writeDeckMeta(slug, { ...meta, renderUrl });
+    try {
+      const metaUrl = `${AUTH_SERVICE_URL}/api/${slug}/meta`;
+      const metaBody = JSON.stringify({ renderUrl });
+      await httpRequest(metaUrl, 'PUT', metaBody, freshConfig.AUTH_SECRET);
+    } catch { /* non-fatal — admin View link will fall back to constructed URL */ }
     try {
       git(`add decks/${slug}/deck.json`);
       git(`commit -m "Save Render URL for ${slug}"`);
