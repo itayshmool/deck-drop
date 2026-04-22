@@ -120,6 +120,22 @@
       font-size: 12px;
     }
     .btn-danger:hover { background: #1e293b; }
+    .btn-view {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      color: #64748b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .btn-view:hover { color: #deff9a; border-color: #deff9a; }
 
     /* Modal overlay */
     .overlay {
@@ -357,7 +373,10 @@
           <div class="card">
             <div class="card-label">${escapeHtml(d.slug)}</div>
             <div class="card-meta">${d.userCount} user${d.userCount !== 1 ? 's' : ''}</div>
-            <button onclick="openDeck('${escapeHtml(d.slug)}')">Manage Users</button>
+            <div style="display:flex;gap:8px;">
+              <button onclick="openDeck('${escapeHtml(d.slug)}')">Manage Users</button>
+              <a href="https://online-decks-${escapeHtml(d.slug)}.onrender.com" target="_blank" class="btn-view">View</a>
+            </div>
           </div>
         `).join('') + '</div>';
       } catch (e) {
