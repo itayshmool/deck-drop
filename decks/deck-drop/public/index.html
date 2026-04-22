@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeckDrop — Protected Presentations, Delivered Instantly</title>
+<meta name="description" content="Share confidential decks with the right people — no downloads, no forwarding, no access leaks. Built with Claude Code, deployed on Render.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg-card: #141414;
+    --green: #deff9a;
+    --white: #ffffff;
+    --slate: #cbd5e1;
+    --muted: #64748b;
+    --dark-border: #1e1e1e;
+    --font-title: 'Urbanist', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: var(--font-body);
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+  }
+
+  .deck { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 80px 120px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(20px);
+    transition: opacity 0.5s ease, visibility 0.5s ease, transform 0.5s ease;
+    overflow: hidden;
+  }
+
+  .slide.active { opacity: 1; visibility: visible; transform: translateX(0); }
+  .slide.exit-left { transform: translateX(-20px); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slide, .progress, .menu-panel, .menu-overlay, .nav-btn, .menu-btn { transition: none; }
+  }
+
+  /* Typography */
+  .slide-label {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 20px;
+  }
+
+  .slide-title {
+    font-family: var(--font-title);
+    font-weight: 800;
+    font-size: 64px;
+    line-height: 1.1;
+    color: var(--white);
+    margin-bottom: 24px;
+    max-width: 900px;
+  }
+
+  .slide-title .green { color: var(--green); }
+  .slide-title.lg { font-size: 52px; }
+  .slide-title.md { font-size: 48px; }
+  .slide-title.sm { font-size: 44px; }
+
+  .slide-subtitle {
+    font-family: var(--font-body);
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--slate);
+    line-height: 1.6;
+    max-width: 700px;
+  }
+
+  .slide-body {
+    font-family: var(--font-body);
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--slate);
+    line-height: 1.7;
+    max-width: 800px;
+  }
+
+  /* Bullets */
+  .bullets { list-style: none; display: flex; flex-direction: column; gap: 16px; margin-top: 8px; }
+  .bullets li {
+    font-family: var(--font-body);
+    font-size: 19px;
+    font-weight: 400;
+    color: var(--slate);
+    line-height: 1.6;
+    padding-left: 24px;
+    position: relative;
+  }
+  .bullets li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+  .bullets li strong { color: var(--white); font-weight: 600; }
+
+  /* Compare Table */
+  .compare-table { margin-top: 32px; width: 100%; max-width: 800px; border-collapse: collapse; }
+  .compare-table th {
+    font-family: var(--font-body); font-size: 12px; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--green);
+    text-align: left; padding: 12px 20px; border-bottom: 1px solid var(--dark-border);
+  }
+  .compare-table td {
+    font-family: var(--font-body); font-size: 17px; color: var(--slate);
+    padding: 14px 20px; border-bottom: 1px solid var(--dark-border); vertical-align: top;
+  }
+  .compare-table td:first-child { color: var(--muted); }
+  .compare-table td:last-child { color: var(--white); font-weight: 500; }
+
+  /* Security table */
+  .sec-table { margin-top: 32px; width: 100%; max-width: 800px; border-collapse: collapse; }
+  .sec-table th {
+    font-family: var(--font-body); font-size: 12px; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--green);
+    text-align: left; padding: 12px 20px; border-bottom: 1px solid var(--dark-border);
+  }
+  .sec-table td {
+    font-family: var(--font-body); font-size: 16px; color: var(--slate);
+    padding: 14px 20px; border-bottom: 1px solid var(--dark-border);
+  }
+  .sec-table td:first-child { color: var(--white); font-weight: 600; }
+
+  /* Cost table */
+  .cost-table { margin-top: 32px; width: 100%; max-width: 800px; border-collapse: collapse; }
+  .cost-table th {
+    font-family: var(--font-body); font-size: 12px; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--green);
+    text-align: left; padding: 12px 20px; border-bottom: 1px solid var(--dark-border);
+  }
+  .cost-table td {
+    font-family: var(--font-body); font-size: 16px; color: var(--slate);
+    padding: 14px 20px; border-bottom: 1px solid var(--dark-border);
+  }
+  .cost-table td:first-child { color: var(--white); font-weight: 500; }
+  .cost-table td:last-child { color: var(--green); font-weight: 600; }
+
+  /* Code block */
+  .code-block {
+    background: var(--bg-card);
+    border: 1px solid var(--dark-border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    color: var(--slate);
+    line-height: 1.8;
+    max-width: 600px;
+    margin-top: 20px;
+  }
+  .code-block .cmd { color: var(--green); }
+  .code-block .comment { color: var(--muted); }
+  .code-block .dim { color: var(--muted); }
+
+  /* Architecture diagram */
+  .arch-diagram {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-top: 40px;
+    flex-wrap: wrap;
+  }
+  .arch-box {
+    background: var(--bg-card);
+    border: 1px solid var(--dark-border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    text-align: center;
+    min-width: 200px;
+    flex: 1;
+  }
+  .arch-box.highlight { border-color: var(--green); }
+  .arch-box-title {
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+  .arch-box-sub {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .arch-arrow {
+    color: var(--green);
+    font-size: 24px;
+    opacity: 0.6;
+  }
+
+  /* Flow steps */
+  .flow-steps {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    background: var(--bg-card);
+    border: 1px solid var(--dark-border);
+    border-radius: 10px;
+    padding: 16px 24px;
+    font-size: 16px;
+    color: var(--slate);
+  }
+  .flow-step.ok { border-color: var(--green); color: var(--white); }
+  .flow-step.deny { border-color: #f87171; color: #f87171; }
+  .flow-arrow { color: var(--muted); font-size: 18px; }
+
+  /* Section Divider */
+  .slide.section-divider { justify-content: center; align-items: flex-start; }
+  .section-part {
+    font-family: var(--font-body); font-size: 14px; font-weight: 600;
+    letter-spacing: 3px; text-transform: uppercase; color: var(--green); margin-bottom: 20px;
+  }
+  .section-title { font-family: var(--font-title); font-weight: 800; font-size: 72px; color: var(--white); line-height: 1.1; }
+
+  /* Statement slide */
+  .slide.statement { justify-content: center; align-items: center; text-align: center; padding: 80px 160px; }
+  .statement .slide-title { font-size: 56px; max-width: 900px; }
+
+  /* Big number */
+  .big-number {
+    font-family: var(--font-title); font-weight: 900; font-size: 120px; color: var(--green);
+    opacity: 0.15; position: absolute; right: 80px; top: 60px; line-height: 1;
+  }
+
+  /* URL examples */
+  .url-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .url-list li {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 16px;
+  }
+  .url-list .url {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--green);
+    background: var(--bg-card);
+    border: 1px solid var(--dark-border);
+    border-radius: 6px;
+    padding: 8px 14px;
+  }
+  .url-list .url-desc { color: var(--muted); font-size: 14px; }
+
+  /* Pillars */
+  .pillars { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-top: 32px; width: 100%; }
+  .pillar {
+    background: var(--bg-card); border: 1px solid var(--dark-border); border-radius: 12px;
+    padding: 24px 20px; display: flex; flex-direction: column; gap: 8px; position: relative; overflow: hidden;
+  }
+  .pillar::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--green); }
+  .pillar-title { font-family: var(--font-title); font-weight: 700; font-size: 17px; color: var(--white); line-height: 1.3; }
+  .pillar-body { font-family: var(--font-body); font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  /* Navigation */
+  .nav {
+    position: fixed; bottom: 32px; right: 40px;
+    display: flex; align-items: center; gap: 16px; z-index: 100;
+  }
+  .nav-counter { font-family: var(--font-body); font-size: 13px; color: var(--muted); font-weight: 500; }
+  .nav-btn {
+    width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--dark-border);
+    background: var(--bg-card); color: var(--slate); font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+  }
+  .nav-btn:hover, .nav-btn:focus-visible { border-color: var(--green); color: var(--green); outline: none; }
+
+  /* Menu */
+  .menu-btn {
+    position: fixed; bottom: 32px; left: 40px; width: 40px; height: 40px; border-radius: 50%;
+    border: 1px solid var(--dark-border); background: var(--bg-card); color: var(--slate);
+    font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; z-index: 170;
+  }
+  .menu-btn:hover, .menu-btn:focus-visible { border-color: var(--green); color: var(--green); outline: none; }
+  .menu-btn.open { border-color: var(--green); color: var(--green); }
+
+  .menu-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 150;
+    opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+  .menu-overlay.open { opacity: 1; visibility: visible; }
+
+  .menu-panel {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 320px;
+    background: var(--bg-card); border-right: 1px solid var(--dark-border);
+    z-index: 160; transform: translateX(-100%); transition: transform 0.3s ease;
+    overflow-y: auto; padding: 32px 0;
+  }
+  .menu-panel.open { transform: translateX(0); }
+  .menu-panel::-webkit-scrollbar { width: 4px; }
+  .menu-panel::-webkit-scrollbar-track { background: transparent; }
+  .menu-panel::-webkit-scrollbar-thumb { background: var(--dark-border); border-radius: 2px; }
+
+  .menu-header {
+    font-family: var(--font-title); font-size: 14px; font-weight: 700; color: var(--green);
+    text-transform: uppercase; letter-spacing: 2px; padding: 0 24px 16px;
+    border-bottom: 1px solid var(--dark-border); margin-bottom: 8px;
+  }
+  .menu-section {
+    padding: 12px 24px 4px; font-family: var(--font-body); font-size: 10px; font-weight: 600;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px;
+  }
+  .menu-item {
+    display: flex; align-items: center; gap: 12px; padding: 10px 24px;
+    cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent;
+  }
+  .menu-item:hover, .menu-item:focus-visible { background: rgba(222,255,154,0.05); outline: none; }
+  .menu-item.active { background: rgba(222,255,154,0.08); border-left-color: var(--green); }
+  .menu-item-num { font-family: var(--font-body); font-size: 11px; font-weight: 600; color: var(--muted); min-width: 22px; }
+  .menu-item.active .menu-item-num { color: var(--green); }
+  .menu-item-title { font-family: var(--font-body); font-size: 13px; font-weight: 500; color: var(--slate); }
+  .menu-item.active .menu-item-title { color: var(--white); font-weight: 600; }
+  .menu-item-divider {
+    padding: 10px 24px; font-family: var(--font-title); font-size: 12px; font-weight: 700;
+    color: var(--green); opacity: 0.6; border-left: 3px solid transparent;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .menu-item-divider:hover { opacity: 1; background: rgba(222,255,154,0.05); }
+  .menu-item-divider.active { opacity: 1; border-left-color: var(--green); }
+
+  /* Progress bar */
+  .progress {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: var(--green); transition: width 0.4s ease; z-index: 100;
+  }
+
+  /* ── Responsive: Tablet (<=1024px) ── */
+  @media (max-width: 1024px) {
+    .slide { padding: 60px 60px 80px; }
+    .slide.statement { padding: 60px 80px; }
+    .slide-title { font-size: 52px; }
+    .slide-title.lg { font-size: 44px; }
+    .slide-title.md { font-size: 40px; }
+    .slide-title.sm { font-size: 38px; }
+    .statement .slide-title { font-size: 44px; }
+    .section-title { font-size: 56px; }
+    .big-number { font-size: 90px; right: 50px; top: 50px; }
+    .arch-diagram { gap: 16px; }
+  }
+
+  /* ── Responsive: Mobile (<=768px) ── */
+  @media (max-width: 768px) {
+    .slide {
+      padding: 40px 28px 72px;
+      justify-content: flex-start;
+      padding-top: 64px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .slide.statement { padding: 40px 28px 72px; justify-content: center; }
+    .slide.section-divider { padding: 40px 28px; justify-content: center; }
+
+    .slide-title { font-size: 36px; margin-bottom: 16px; }
+    .slide-title.lg { font-size: 32px; }
+    .slide-title.md { font-size: 30px; }
+    .slide-title.sm { font-size: 28px; }
+    .statement .slide-title { font-size: 30px; }
+    .slide-subtitle { font-size: 17px; max-width: 100%; }
+    .slide-body { font-size: 15px; }
+    .slide-label { font-size: 11px; letter-spacing: 2px; margin-bottom: 12px; }
+    .section-title { font-size: 44px; }
+    .section-part { font-size: 12px; }
+    .big-number { font-size: 64px; right: 24px; top: 40px; }
+    .bullets li { font-size: 16px; }
+
+    .compare-table { margin-top: 20px; }
+    .compare-table th { font-size: 11px; padding: 10px 14px; }
+    .compare-table td { font-size: 14px; padding: 10px 14px; }
+
+    .sec-table { margin-top: 20px; }
+    .sec-table th { font-size: 11px; padding: 10px 14px; }
+    .sec-table td { font-size: 14px; padding: 10px 14px; }
+
+    .cost-table { margin-top: 20px; }
+    .cost-table th { font-size: 11px; padding: 10px 14px; }
+    .cost-table td { font-size: 14px; padding: 10px 14px; }
+
+    .arch-diagram { flex-direction: column; gap: 12px; margin-top: 24px; }
+    .arch-box { min-width: unset; width: 100%; padding: 16px 20px; }
+    .arch-arrow { transform: rotate(90deg); }
+
+    .flow-steps { gap: 10px; margin-top: 20px; }
+    .flow-step { font-size: 14px; padding: 10px 16px; }
+
+    .pillars { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 20px; }
+    .pillar { padding: 16px 14px; }
+
+    .url-list li { flex-direction: column; gap: 4px; align-items: flex-start; }
+    .url-list .url { font-size: 12px; }
+
+    .code-block { font-size: 13px; padding: 16px 20px; max-width: 100%; }
+
+    .nav { bottom: 16px; right: 16px; gap: 10px; }
+    .nav-btn { width: 36px; height: 36px; font-size: 16px; }
+    .nav-counter { font-size: 11px; }
+
+    .menu-btn { top: 16px; bottom: auto; left: 16px; width: 36px; height: 36px; font-size: 16px; }
+    .menu-panel { width: 280px; padding: 24px 0; }
+    .menu-header { font-size: 12px; padding: 0 20px 12px; }
+    .menu-item { padding: 8px 20px; }
+    .menu-item-title { font-size: 12px; }
+    .menu-item-num { font-size: 10px; }
+    .menu-section { padding: 10px 20px 4px; font-size: 9px; }
+    .menu-item-divider { padding: 8px 20px; font-size: 11px; }
+  }
+
+  /* ── Responsive: Small phone (<=420px) ── */
+  @media (max-width: 420px) {
+    .slide { padding: 32px 20px 68px; padding-top: 60px; }
+    .slide.statement { padding: 32px 20px 68px; }
+
+    .slide-title { font-size: 28px; }
+    .slide-title.lg { font-size: 26px; }
+    .slide-title.md { font-size: 25px; }
+    .slide-title.sm { font-size: 24px; }
+    .statement .slide-title { font-size: 24px; }
+    .section-title { font-size: 36px; }
+    .slide-subtitle { font-size: 15px; }
+    .big-number { font-size: 48px; right: 16px; top: 20px; }
+    .bullets li { font-size: 14px; line-height: 1.5; }
+
+    .pillars { grid-template-columns: 1fr; }
+    .menu-panel { width: 260px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<!-- Menu -->
+<button class="menu-btn" id="menuBtn" title="Menu">&#9776;</button>
+<div class="menu-overlay" id="menuOverlay"></div>
+<div class="menu-panel" id="menuPanel">
+  <div class="menu-header">DeckDrop</div>
+
+  <div class="menu-section">Product</div>
+  <div class="menu-item" data-go="1"><span class="menu-item-num">1</span><span class="menu-item-title">Title</span></div>
+  <div class="menu-item" data-go="2"><span class="menu-item-num">2</span><span class="menu-item-title">Why HTML Slides?</span></div>
+  <div class="menu-item" data-go="3"><span class="menu-item-num">3</span><span class="menu-item-title">The Problem</span></div>
+  <div class="menu-item" data-go="4"><span class="menu-item-num">4</span><span class="menu-item-title">The Solution</span></div>
+  <div class="menu-item" data-go="5"><span class="menu-item-num">5</span><span class="menu-item-title">How It Works</span></div>
+  <div class="menu-item" data-go="6"><span class="menu-item-num">6</span><span class="menu-item-title">Admin Dashboard</span></div>
+  <div class="menu-item" data-go="7"><span class="menu-item-num">7</span><span class="menu-item-title">Deploy a New Deck</span></div>
+
+  <div class="menu-item-divider" data-go="8">Technical Deep Dive</div>
+  <div class="menu-item" data-go="9"><span class="menu-item-num">9</span><span class="menu-item-title">Shared Auth Proxy</span></div>
+  <div class="menu-item" data-go="10"><span class="menu-item-num">10</span><span class="menu-item-title">Stateless Deck Services</span></div>
+  <div class="menu-item" data-go="11"><span class="menu-item-num">11</span><span class="menu-item-title">Security Model</span></div>
+  <div class="menu-item" data-go="12"><span class="menu-item-num">12</span><span class="menu-item-title">Cost &amp; Infrastructure</span></div>
+
+  <div class="menu-section">Closing</div>
+  <div class="menu-item" data-go="13"><span class="menu-item-num">13</span><span class="menu-item-title">What's Next</span></div>
+  <div class="menu-item" data-go="14"><span class="menu-item-num">14</span><span class="menu-item-title">Summary</span></div>
+</div>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide statement active" data-slide="0">
+    <div class="slide-label">Protected Presentations</div>
+    <div class="slide-title"><span class="green">DeckDrop</span></div>
+    <div class="slide-subtitle" style="text-align:center; margin-top: 12px;">Share confidential decks with the right people &mdash; no downloads, no forwarding, no access leaks.</div>
+  </div>
+
+  <!-- SLIDE 2: Why HTML Slides? -->
+  <div class="slide" data-slide="1">
+    <div class="slide-label">Philosophy</div>
+    <div class="slide-title md">Why <span class="green">HTML</span> Slides?</div>
+    <div class="slide-subtitle" style="margin-bottom: 24px;">PowerPoint and Google Slides are great tools. But they're the wrong output format.</div>
+    <div style="display: flex; gap: 40px; margin-top: 8px; align-items: flex-start; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 280px;">
+        <div style="font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px;">Traditional Slides</div>
+        <ul class="bullets">
+          <li>Tied to an app &mdash; download, upload, or a specific viewer</li>
+          <li>No access control &mdash; "anyone with the link"</li>
+          <li>Static files &mdash; can't embed interactions</li>
+          <li>Manual design &mdash; pixel by pixel</li>
+        </ul>
+      </div>
+      <div style="flex: 1; min-width: 280px;">
+        <div style="font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--green); margin-bottom: 12px;">HTML Slides Are Code</div>
+        <ul class="bullets">
+          <li><strong>Generated</strong> &mdash; Claude Code builds a deck from a prompt</li>
+          <li><strong>Version controlled</strong> &mdash; every change tracked in git</li>
+          <li><strong>Deployed</strong> &mdash; served as a web app with auth</li>
+          <li><strong>Interactive</strong> &mdash; animations, live demos, components</li>
+        </ul>
+      </div>
+    </div>
+    <div class="slide-body" style="margin-top: 28px; color: var(--white); font-weight: 500; font-size: 17px;">
+      The slide tool doesn't matter when AI writes the slides and infrastructure protects them.
+    </div>
+  </div>
+
+  <!-- SLIDE 3: The Problem -->
+  <div class="slide" data-slide="2">
+    <div class="big-number">!</div>
+    <div class="slide-label">The Problem</div>
+    <div class="slide-title md">Sharing Decks Is <span class="green">Broken</span></div>
+    <ul class="bullets" style="margin-top: 32px;">
+      <li>Email a PDF &rarr; it gets forwarded to everyone</li>
+      <li>Google Slides link &rarr; "anyone with the link" means <strong>anyone</strong></li>
+      <li>Internal tools &rarr; require VPN, IT setup, corporate accounts</li>
+      <li>No visibility into who actually accessed it</li>
+    </ul>
+    <div class="slide-body" style="margin-top: 36px; color: var(--white); font-weight: 500; font-size: 19px;">
+      You lose control the moment you hit send.
+    </div>
+  </div>
+
+  <!-- SLIDE 4: The Solution -->
+  <div class="slide" data-slide="3">
+    <div class="slide-label">The Solution</div>
+    <div class="slide-title md">A URL With a <span class="green">Gatekeeper</span></div>
+    <div class="slide-subtitle" style="margin-bottom: 24px;">Each deck gets its own URL. Only whitelisted users can view it &mdash; verified via Google sign-in.</div>
+    <ul class="url-list">
+      <li>
+        <span class="url">online-decks-p30.onrender.com</span>
+        <span class="url-desc">&rarr; P3.0 leadership deck</span>
+      </li>
+      <li>
+        <span class="url">online-decks-eng-leaders.onrender.com</span>
+        <span class="url-desc">&rarr; Engineering leaders deck</span>
+      </li>
+      <li>
+        <span class="url">online-decks-wolf.onrender.com</span>
+        <span class="url-desc">&rarr; Project Wolf deck</span>
+      </li>
+    </ul>
+    <div class="slide-body" style="margin-top: 28px; color: var(--white); font-weight: 500; font-size: 17px;">
+      No downloads. No forwarding risk. Full control.
+    </div>
+  </div>
+
+  <!-- SLIDE 5: How It Works -->
+  <div class="slide" data-slide="4">
+    <div class="slide-label">User Flow</div>
+    <div class="slide-title md">How It <span class="green">Works</span></div>
+    <div class="flow-steps">
+      <div class="flow-step">User visits deck URL</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Google sign-in</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Email checked against whitelist</div>
+    </div>
+    <div style="display: flex; gap: 24px; margin-top: 24px; flex-wrap: wrap;">
+      <div class="flow-step ok" style="flex: 1; text-align: center;">&#10003; Allowed &rarr; sees the presentation</div>
+      <div class="flow-step deny" style="flex: 1; text-align: center;">&#10007; Denied &rarr; "You don't have access"</div>
+    </div>
+    <div class="slide-body" style="margin-top: 36px; color: var(--white); font-weight: 500; font-size: 19px;">
+      One click. No passwords. No accounts to create.
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Admin Dashboard -->
+  <div class="slide" data-slide="5">
+    <div class="slide-label">Management</div>
+    <div class="slide-title md">Admin <span class="green">Dashboard</span></div>
+    <div class="slide-subtitle" style="margin-bottom: 8px;">Manage all decks from one place.</div>
+    <div style="font-family: var(--font-mono); font-size: 14px; color: var(--green); margin-bottom: 24px;">online-decks-auth.onrender.com/admin</div>
+    <ul class="bullets">
+      <li>See all decks at a glance with user counts</li>
+      <li>Add users one-by-one or <strong>bulk</strong> (paste a list)</li>
+      <li>Remove users instantly</li>
+      <li>View any deck with one click</li>
+    </ul>
+    <div class="slide-body" style="margin-top: 28px; font-size: 16px;">
+      Admins sign in with Google &mdash; only approved emails get access.
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Deploy -->
+  <div class="slide" data-slide="6">
+    <div class="slide-label">Deployment</div>
+    <div class="slide-title md">From Slides to <span class="green">Live URL</span></div>
+    <div class="code-block">
+      <span class="comment"># Deploy a new deck</span><br>
+      <span class="cmd">node manage.js deploy my-deck</span><br>
+      <br>
+      <span class="dim">1. Creates a Render web service</span><br>
+      <span class="dim">2. Sets up Google OAuth</span><br>
+      <span class="dim">3. Seeds the user whitelist</span><br>
+      <span class="dim">4. Deploys the deck</span>
+    </div>
+    <div class="slide-body" style="margin-top: 32px; color: var(--white); font-weight: 500; font-size: 17px;">
+      No manual infrastructure. No config files. No dashboards to click through.
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Section — Technical -->
+  <div class="slide section-divider" data-slide="7">
+    <div class="section-part">Technical</div>
+    <div class="section-title">Architecture<br><span style="color: var(--green);">Overview</span></div>
+  </div>
+
+  <!-- SLIDE 9: Shared Auth Proxy -->
+  <div class="slide" data-slide="8">
+    <div class="slide-label">Architecture</div>
+    <div class="slide-title sm">Shared Auth <span class="green">Proxy</span></div>
+    <div class="slide-subtitle" style="margin-bottom: 16px;">One service handles auth for all decks.</div>
+    <div class="arch-diagram">
+      <div class="arch-box" style="max-width: 180px;">
+        <div class="arch-box-title">Deck Services</div>
+        <div class="arch-box-sub">wolf, p30, eng-leaders, ...</div>
+        <div style="font-size: 11px; color: var(--muted); margin-top: 8px;">Stateless<br>No disk needed</div>
+      </div>
+      <div class="arch-arrow">&harr;</div>
+      <div class="arch-box highlight" style="max-width: 240px;">
+        <div class="arch-box-title">Auth Proxy</div>
+        <div class="arch-box-sub">OAuth flow &middot; User storage<br>Admin dashboard &middot; API</div>
+        <div style="font-size: 11px; color: var(--green); margin-top: 8px;">1 GB disk &middot; All user data</div>
+      </div>
+      <div class="arch-arrow">&harr;</div>
+      <div class="arch-box" style="max-width: 180px;">
+        <div class="arch-box-title">Google</div>
+        <div class="arch-box-sub">OAuth 2.0</div>
+      </div>
+    </div>
+    <ul class="bullets" style="margin-top: 28px;">
+      <li>Single Google OAuth callback URL &mdash; no per-deck redirect URIs</li>
+      <li>HMAC-signed tokens passed between services</li>
+      <li>Adding a new deck requires <strong>zero</strong> Google Console changes</li>
+    </ul>
+  </div>
+
+  <!-- SLIDE 10: Stateless Deck Services -->
+  <div class="slide" data-slide="9">
+    <div class="slide-label">Architecture</div>
+    <div class="slide-title sm">Stateless <span class="green">Deck</span> Services</div>
+    <div class="slide-subtitle" style="margin-bottom: 24px;">Deck services are fully stateless.</div>
+    <div class="pillars" style="grid-template-columns: repeat(2, 1fr);">
+      <div class="pillar">
+        <div class="pillar-title">Serves presentation</div>
+        <div class="pillar-body">Static HTML/CSS/JS &mdash; the actual slides</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-title">Delegates auth</div>
+        <div class="pillar-body">Checks access via HTTP call to auth proxy</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-title">No local state</div>
+        <div class="pillar-body">No disk, no database, no local data</div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-title">Disposable</div>
+        <div class="pillar-body">Can be destroyed and recreated without data loss</div>
+      </div>
+    </div>
+    <div class="slide-body" style="margin-top: 28px; color: var(--white); font-weight: 500; font-size: 17px;">
+      All user data lives on the auth proxy's single disk.
+    </div>
+  </div>
+
+  <!-- SLIDE 11: Security Model -->
+  <div class="slide" data-slide="10">
+    <div class="slide-label">Security</div>
+    <div class="slide-title sm">Security <span class="green">Model</span></div>
+    <table class="sec-table">
+      <thead>
+        <tr><th>Layer</th><th>Mechanism</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>User identity</td><td>Google OAuth 2.0</td></tr>
+        <tr><td>Access control</td><td>Per-deck email whitelist</td></tr>
+        <tr><td>Token integrity</td><td>HMAC-SHA256 signed tokens</td></tr>
+        <tr><td>Token expiry</td><td>5-minute TTL</td></tr>
+        <tr><td>Service-to-service</td><td>Shared secret (AUTH_SECRET)</td></tr>
+        <tr><td>Admin access</td><td>ADMIN_EMAILS env var</td></tr>
+        <tr><td>Redirect safety</td><td>Origin URL validation (.onrender.com only)</td></tr>
+      </tbody>
+    </table>
+    <div class="slide-body" style="margin-top: 24px; color: var(--white); font-weight: 500; font-size: 16px;">
+      No passwords stored. No session tokens in URLs. No public APIs.
+    </div>
+  </div>
+
+  <!-- SLIDE 12: Cost -->
+  <div class="slide" data-slide="11">
+    <div class="big-number">$</div>
+    <div class="slide-label">Infrastructure</div>
+    <div class="slide-title sm">Cost &amp; <span class="green">Infrastructure</span></div>
+    <div class="slide-subtitle" style="margin-bottom: 8px;">Runs on Render. Minimal cost.</div>
+    <table class="cost-table">
+      <thead>
+        <tr><th>Component</th><th>Plan</th><th>Cost</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Auth proxy</td><td>Starter + 1GB disk</td><td>~$7/mo</td></tr>
+        <tr><td>Each deck service</td><td>Starter</td><td>~$7/mo</td></tr>
+        <tr><td>Google OAuth</td><td>Free tier</td><td>$0</td></tr>
+        <tr><td>Admin dashboard</td><td>Included in auth proxy</td><td>$0</td></tr>
+      </tbody>
+    </table>
+    <div class="slide-body" style="margin-top: 28px; color: var(--white); font-weight: 500; font-size: 17px;">
+      5 decks + auth proxy = ~$42/mo total.<br>
+      <span style="color: var(--muted); font-weight: 400; font-size: 15px;">No database. No Redis. No CDN. No external services.</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: What's Next -->
+  <div class="slide" data-slide="12">
+    <div class="slide-label">Roadmap</div>
+    <div class="slide-title md">What's <span class="green">Next</span></div>
+    <ul class="bullets" style="margin-top: 32px;">
+      <li><strong>Custom domains</strong> &mdash; decks.yourcompany.com/p30 instead of .onrender.com</li>
+      <li><strong>Access analytics</strong> &mdash; who viewed what, when</li>
+      <li><strong>Deck versioning</strong> &mdash; update slides without changing the URL</li>
+      <li><strong>Expiring access</strong> &mdash; auto-revoke after a date</li>
+      <li><strong>Slack integration</strong> &mdash; notify users when they get access</li>
+    </ul>
+  </div>
+
+  <!-- SLIDE 14: Summary -->
+  <div class="slide statement" data-slide="13">
+    <div class="slide-label">DeckDrop</div>
+    <div class="slide-title sm" style="max-width: 800px; line-height: 1.5;">
+      Upload a deck &rarr; get a <span class="green">protected URL</span><br>
+      Whitelist users &rarr; they <span class="green">sign in with Google</span><br>
+      Manage everything &rarr; from one <span class="green">admin dashboard</span>
+    </div>
+    <div class="slide-subtitle" style="margin-top: 36px; text-align: center;">Simple. Secure. Zero overhead.</div>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav">
+  <div class="nav-counter"><span id="current">1</span> / <span id="total">14</span></div>
+  <button class="nav-btn" id="prev">&larr;</button>
+  <button class="nav-btn" id="next">&rarr;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  document.getElementById('total').textContent = total;
+
+  const menuBtn = document.getElementById('menuBtn');
+  const menuPanel = document.getElementById('menuPanel');
+  const menuOverlay = document.getElementById('menuOverlay');
+  const menuItems = menuPanel.querySelectorAll('[data-go]');
+
+  function toggleMenu(open) {
+    const isOpen = open !== undefined ? open : !menuPanel.classList.contains('open');
+    menuPanel.classList.toggle('open', isOpen);
+    menuOverlay.classList.toggle('open', isOpen);
+    menuBtn.classList.toggle('open', isOpen);
+    menuBtn.textContent = isOpen ? '\u2715' : '\u2630';
+    if (isOpen) {
+      const active = menuPanel.querySelector('.menu-item.active, .menu-item-divider.active');
+      if (active) setTimeout(() => active.scrollIntoView({ block: 'center', behavior: 'smooth' }), 100);
+    }
+  }
+
+  function updateMenu() {
+    const slideNum = current + 1;
+    menuItems.forEach(item => {
+      const go = parseInt(item.dataset.go, 10);
+      item.classList.toggle('active', go === slideNum);
+    });
+  }
+
+  menuBtn.addEventListener('click', () => toggleMenu());
+  menuOverlay.addEventListener('click', () => toggleMenu(false));
+
+  menuItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const target = parseInt(item.dataset.go, 10) - 1;
+      goTo(target);
+      toggleMenu(false);
+    });
+  });
+
+  function goTo(n) {
+    if (n < 0 || n >= total) return;
+    const goingForward = n > current;
+    slides[current].classList.remove('active');
+    if (goingForward) slides[current].classList.add('exit-left');
+    else slides[current].classList.remove('exit-left');
+    const prev = slides[current];
+    setTimeout(() => prev.classList.remove('exit-left'), 500);
+    if (!goingForward) slides[n].classList.remove('exit-left');
+    else slides[n].classList.remove('exit-left');
+    slides[n].style.transform = goingForward ? '' : 'translateX(-20px)';
+    void slides[n].offsetWidth;
+    slides[n].style.transform = '';
+    current = n;
+    slides[current].classList.add('active');
+    document.getElementById('current').textContent = current + 1;
+    document.getElementById('progress').style.width = ((current + 1) / total * 100) + '%';
+    history.replaceState(null, '', '#' + (current + 1));
+    updateMenu();
+  }
+
+  document.getElementById('prev').addEventListener('click', () => goTo(current - 1));
+  document.getElementById('next').addEventListener('click', () => goTo(current + 1));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { toggleMenu(false); return; }
+    if (menuPanel.classList.contains('open')) return;
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); goTo(current - 1); }
+    if (e.key === 'Home') goTo(0);
+    if (e.key === 'End') goTo(total - 1);
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) { diff > 0 ? goTo(current + 1) : goTo(current - 1); }
+  });
+
+  const progressEl = document.getElementById('progress');
+  progressEl.style.transition = 'none';
+  const hashVal = parseInt(location.hash.replace('#', ''), 10) || 1;
+  const startSlide = Math.max(0, Math.min(hashVal - 1, total - 1));
+  if (startSlide > 0) goTo(startSlide);
+  progressEl.style.width = ((current + 1) / total * 100) + '%';
+  void progressEl.offsetWidth;
+  progressEl.style.transition = '';
+  updateMenu();
+</script>
+
+</body>
+</html>
