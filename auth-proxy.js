@@ -1,5 +1,5 @@
-// Shared OAuth proxy for all online-decks instances.
-// Handles Google OAuth and redirects back to the originating deck with a signed token.
+// Shared OAuth proxy + user management for all online-decks instances.
+// Handles Google OAuth, stores per-deck user whitelists on a single disk.
 // Deploy as a single Render service: online-decks-auth
 require('dotenv').config();
 const express = require('express');
@@ -7,10 +7,13 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const AUTH_SECRET = process.env.AUTH_SECRET;
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 
 if (!AUTH_SECRET) {
   console.error('FATAL: AUTH_SECRET env var is required.');
@@ -106,6 +109,93 @@ app.get('/auth/google/callback',
 
 app.get('/auth/failed', (req, res) => {
   res.status(401).send('Authentication failed. Close this tab and try again.');
+});
+
+// --- User management API (protected by AUTH_SECRET) ---
+app.use(express.json());
+
+function requireApiKey(req, res, next) {
+  const token = (req.headers.authorization || '').replace('Bearer ', '');
+  if (token !== AUTH_SECRET) return res.status(401).json({ error: 'Unauthorized' });
+  next();
+}
+
+function usersPath(slug) {
+  return path.join(DATA_DIR, slug, 'users.json');
+}
+
+function readDeckUsers(slug) {
+  try {
+    return JSON.parse(fs.readFileSync(usersPath(slug), 'utf8'));
+  } catch {
+    return { users: [] };
+  }
+}
+
+function writeDeckUsers(slug, data) {
+  const dir = path.join(DATA_DIR, slug);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(usersPath(slug), JSON.stringify(data, null, 2) + '\n');
+}
+
+// Check if email is whitelisted for a deck
+app.get('/api/:slug/check/:email', requireApiKey, (req, res) => {
+  const data = readDeckUsers(req.params.slug);
+  const allowed = data.users.includes(req.params.email.toLowerCase());
+  res.json({ allowed });
+});
+
+// List users for a deck
+app.get('/api/:slug/users', requireApiKey, (req, res) => {
+  res.json(readDeckUsers(req.params.slug));
+});
+
+// Add users to a deck
+app.post('/api/:slug/users', requireApiKey, (req, res) => {
+  const { emails } = req.body;
+  if (!emails || !Array.isArray(emails)) return res.status(400).json({ error: 'emails array required' });
+  const data = readDeckUsers(req.params.slug);
+  const added = [];
+  for (const raw of emails) {
+    const email = raw.trim().toLowerCase();
+    if (email && !data.users.includes(email)) {
+      data.users.push(email);
+      added.push(email);
+    }
+  }
+  writeDeckUsers(req.params.slug, data);
+  res.json({ added, total: data.users.length });
+});
+
+// Remove a user from a deck
+app.delete('/api/:slug/users/:email', requireApiKey, (req, res) => {
+  const data = readDeckUsers(req.params.slug);
+  const email = req.params.email.toLowerCase();
+  data.users = data.users.filter(e => e !== email);
+  writeDeckUsers(req.params.slug, data);
+  res.json({ removed: email, total: data.users.length });
+});
+
+// Replace all users for a deck (full overwrite)
+app.put('/api/:slug/users', requireApiKey, (req, res) => {
+  const { users } = req.body;
+  if (!Array.isArray(users)) return res.status(400).json({ error: 'users array required' });
+  const cleaned = users.map(e => e.trim().toLowerCase()).filter(Boolean);
+  writeDeckUsers(req.params.slug, { users: cleaned });
+  res.json({ replaced: true, count: cleaned.length });
+});
+
+// Seed users (only writes if no users exist yet)
+app.put('/api/:slug/seed', requireApiKey, (req, res) => {
+  const { users } = req.body;
+  if (!Array.isArray(users)) return res.status(400).json({ error: 'users array required' });
+  const existing = readDeckUsers(req.params.slug);
+  if (existing.users.length > 0) {
+    return res.json({ seeded: false, message: 'Users already exist, skipping seed', count: existing.users.length });
+  }
+  const cleaned = users.map(e => e.trim().toLowerCase()).filter(Boolean);
+  writeDeckUsers(req.params.slug, { users: cleaned });
+  res.json({ seeded: true, count: cleaned.length });
 });
 
 app.get('/health', (req, res) => {

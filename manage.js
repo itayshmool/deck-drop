@@ -8,6 +8,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
 const https = require('https');
+const http = require('http');
 
 const app = express();
 const PORT = 4000;
@@ -120,6 +121,7 @@ async function ensureAuthProxy(config) {
       { key: 'GOOGLE_CLIENT_SECRET', value: config.GOOGLE_CLIENT_SECRET },
       { key: 'AUTH_SECRET', value: config.AUTH_SECRET },
       { key: 'CALLBACK_URL', value: `${AUTH_SERVICE_URL}/auth/google/callback` },
+      { key: 'DATA_DIR', value: '/var/data' },
       { key: 'NODE_ENV', value: 'production' }
     ],
     serviceDetails: {
@@ -128,6 +130,7 @@ async function ensureAuthProxy(config) {
       plan: 'starter',
       region: 'frankfurt',
       numInstances: 1,
+      disk: { name: 'auth-data', mountPath: '/var/data', sizeGB: 1 },
       envSpecificDetails: {
         buildCommand: 'npm install',
         startCommand: 'node auth-proxy.js'
@@ -375,7 +378,7 @@ app.post('/api/decks/:slug/deploy', async (req, res) => {
       return res.json({ success: true, steps, renderUrl: meta.renderUrl });
     }
 
-    // 4. Create Render service with shared auth proxy config
+    // 4. Create Render service (stateless — no disk, users stored on auth proxy)
     steps.push({ step: 'render-service', status: 'running' });
     const sessionSecret = crypto.randomBytes(32).toString('hex');
     const serviceBody = {
@@ -391,8 +394,7 @@ app.post('/api/decks/:slug/deploy', async (req, res) => {
         { key: 'AUTH_SECRET', value: freshConfig.AUTH_SECRET },
         { key: 'SESSION_SECRET', value: sessionSecret },
         { key: 'ADMIN_EMAILS', value: freshConfig.ADMIN_EMAILS },
-        { key: 'NODE_ENV', value: 'production' },
-        { key: 'DATA_DIR', value: '/var/data' }
+        { key: 'NODE_ENV', value: 'production' }
       ],
       serviceDetails: {
         runtime: 'node',
@@ -400,7 +402,6 @@ app.post('/api/decks/:slug/deploy', async (req, res) => {
         plan: 'starter',
         region: 'frankfurt',
         numInstances: 1,
-        disk: { name: 'disk', mountPath: '/var/data', sizeGB: 1 },
         envSpecificDetails: {
           buildCommand: 'npm install',
           startCommand: 'node server.js'
@@ -415,7 +416,45 @@ app.post('/api/decks/:slug/deploy', async (req, res) => {
     steps[steps.length - 1].status = 'done';
     steps[steps.length - 1].message = renderUrl;
 
-    // 5. Save renderUrl to deck.json
+    // 5. Seed users to auth proxy
+    steps.push({ step: 'seed-users', status: 'running' });
+    try {
+      const seedData = readDeckSeed(slug);
+      const seedUrl = `${AUTH_SERVICE_URL}/api/${slug}/seed`;
+      const seedBody = JSON.stringify({ users: seedData.users });
+      await new Promise((resolve, reject) => {
+        const parsed = new URL(seedUrl);
+        const transport = parsed.protocol === 'https:' ? https : http;
+        const req = transport.request({
+          hostname: parsed.hostname,
+          port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+          path: parsed.pathname,
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${freshConfig.AUTH_SECRET}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(seedBody)
+          }
+        }, (res) => {
+          let chunks = '';
+          res.on('data', (c) => { chunks += c; });
+          res.on('end', () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) resolve(chunks);
+            else reject(new Error(`Seed failed ${res.statusCode}: ${chunks}`));
+          });
+        });
+        req.on('error', reject);
+        req.write(seedBody);
+        req.end();
+      });
+      steps[steps.length - 1].status = 'done';
+      steps[steps.length - 1].message = `Seeded ${seedData.users.length} users to auth proxy`;
+    } catch (e) {
+      steps[steps.length - 1].status = 'warning';
+      steps[steps.length - 1].message = `User seed failed (will retry on first login): ${e.message}`;
+    }
+
+    // 6. Save renderUrl to deck.json
     writeDeckMeta(slug, { ...meta, renderUrl });
     try {
       git(`add decks/${slug}/deck.json`);

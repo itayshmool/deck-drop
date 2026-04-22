@@ -18,7 +18,10 @@ const DECK_DIR = path.join(__dirname, 'decks', DECK_NAME);
 const deckMeta = JSON.parse(fs.readFileSync(path.join(DECK_DIR, 'deck.json'), 'utf8'));
 
 const { createAuth } = require('./middleware/auth');
-const { requireAuth, requireAdmin, readUsers, writeUsers, isAdmin, ADMIN_EMAILS } = createAuth(DECK_DIR);
+const { requireAuth, requireAdmin, readUsers, writeUsers, isAdmin, ADMIN_EMAILS } = createAuth(DECK_DIR, {
+  authServiceUrl: process.env.AUTH_SERVICE_URL,
+  deckSlug: DECK_NAME
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -108,13 +111,17 @@ if (AUTH_SERVICE_URL) {
     if (!user) return res.redirect('/login');
 
     // Create session (same shape as Passport user)
-    req.login({ email: user.email, name: user.name, photo: user.photo }, (err) => {
+    req.login({ email: user.email, name: user.name, photo: user.photo }, async (err) => {
       if (err) return res.redirect('/login');
       const email = user.email;
       if (isAdmin(email)) return res.redirect('/');
-      const data = readUsers();
-      if (data.users.includes(email.toLowerCase())) {
-        return res.redirect('/');
+      try {
+        const data = await readUsers();
+        if (data.users.includes(email.toLowerCase())) {
+          return res.redirect('/');
+        }
+      } catch (e) {
+        console.error('Failed to check user whitelist:', e.message);
       }
       return res.redirect('/denied');
     });
@@ -127,12 +134,16 @@ if (AUTH_SERVICE_URL) {
 
   app.get('/auth/google/callback',
     passport.authenticate('google', { failureRedirect: '/login' }),
-    (req, res) => {
+    async (req, res) => {
       const email = req.user.email;
       if (isAdmin(email)) return res.redirect('/');
-      const data = readUsers();
-      if (data.users.includes(email.toLowerCase())) {
-        return res.redirect('/');
+      try {
+        const data = await readUsers();
+        if (data.users.includes(email.toLowerCase())) {
+          return res.redirect('/');
+        }
+      } catch (e) {
+        console.error('Failed to check user whitelist:', e.message);
       }
       return res.redirect('/denied');
     }
@@ -163,39 +174,51 @@ app.get('/admin', requireAdmin, (req, res) => {
   sendView(res, 'admin.html');
 });
 
-app.get('/api/users', requireAdmin, (req, res) => {
-  const data = readUsers();
-  data.admins = ADMIN_EMAILS;
-  res.json(data);
+app.get('/api/users', requireAdmin, async (req, res) => {
+  try {
+    const data = await readUsers();
+    data.admins = ADMIN_EMAILS;
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to read users: ' + e.message });
+  }
 });
 
-app.post('/api/users', requireAdmin, (req, res) => {
+app.post('/api/users', requireAdmin, async (req, res) => {
   const { emails } = req.body;
   if (!emails || !Array.isArray(emails)) {
     return res.status(400).json({ error: 'emails array required' });
   }
-  const data = readUsers();
-  const added = [];
-  for (const raw of emails) {
-    const email = raw.trim().toLowerCase();
-    if (email && !data.users.includes(email)) {
-      data.users.push(email);
-      added.push(email);
+  try {
+    const data = await readUsers();
+    const added = [];
+    for (const raw of emails) {
+      const email = raw.trim().toLowerCase();
+      if (email && !data.users.includes(email)) {
+        data.users.push(email);
+        added.push(email);
+      }
     }
+    await writeUsers(data);
+    res.json({ added, total: data.users.length });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to update users: ' + e.message });
   }
-  writeUsers(data);
-  res.json({ added, total: data.users.length });
 });
 
-app.delete('/api/users/:email', requireAdmin, (req, res) => {
+app.delete('/api/users/:email', requireAdmin, async (req, res) => {
   const email = req.params.email.toLowerCase();
   if (ADMIN_EMAILS.includes(email)) {
     return res.status(400).json({ error: 'Cannot remove admin' });
   }
-  const data = readUsers();
-  data.users = data.users.filter(e => e !== email);
-  writeUsers(data);
-  res.json({ removed: email, total: data.users.length });
+  try {
+    const data = await readUsers();
+    data.users = data.users.filter(e => e !== email);
+    await writeUsers(data);
+    res.json({ removed: email, total: data.users.length });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to remove user: ' + e.message });
+  }
 });
 
 app.get('/api/me', (req, res) => {
