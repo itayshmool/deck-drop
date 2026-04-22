@@ -232,6 +232,10 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+app.get('/favicon.svg', (req, res) => {
+  res.type('image/svg+xml').send(fs.readFileSync(path.join(__dirname, 'views', 'favicon.svg')));
+});
+
 app.get('/admin/login', (req, res) => {
   if (req.isAuthenticated() && ADMIN_EMAILS.includes((req.user.email || '').toLowerCase())) {
     return res.redirect('/admin');
