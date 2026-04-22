@@ -14,6 +14,10 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const AUTH_SECRET = process.env.AUTH_SECRET;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
+  .split(',')
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean);
 
 if (!AUTH_SECRET) {
   console.error('FATAL: AUTH_SECRET env var is required.');
@@ -43,8 +47,8 @@ app.set('trust proxy', 1);
 app.use(session({
   secret: AUTH_SECRET,
   resave: false,
-  saveUninitialized: true,
-  cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 10 * 60 * 1000 }
+  saveUninitialized: false,
+  cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 24 * 60 * 60 * 1000 }
 }));
 
 passport.serializeUser((user, done) => done(null, user));
@@ -69,12 +73,16 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Step 1: Deck redirects here with ?origin=https://online-decks-{slug}.onrender.com
+// Admin dashboard uses ?origin=__admin__ to redirect back to /admin after login
 app.get('/auth/google', (req, res, next) => {
   const origin = req.query.origin;
-  if (!origin || !isAllowedOrigin(origin)) {
+  if (origin === '__admin__') {
+    req.session.authOrigin = '__admin__';
+  } else if (!origin || !isAllowedOrigin(origin)) {
     return res.status(400).send('Missing or invalid origin parameter');
+  } else {
+    req.session.authOrigin = origin;
   }
-  req.session.authOrigin = origin;
   passport.authenticate('google', {
     scope: ['profile', 'email'],
     state: origin
@@ -86,6 +94,17 @@ app.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/auth/failed' }),
   (req, res) => {
     const origin = req.session.authOrigin || req.query.state;
+
+    // Admin dashboard login flow
+    if (origin === '__admin__') {
+      delete req.session.authOrigin;
+      const email = (req.user.email || '').toLowerCase();
+      if (ADMIN_EMAILS.includes(email)) {
+        return res.redirect('/admin');
+      }
+      return res.status(403).send('Your account is not authorized as an admin.');
+    }
+
     if (!origin || !isAllowedOrigin(origin)) {
       return res.status(400).send('Invalid auth origin');
     }
@@ -196,6 +215,87 @@ app.put('/api/:slug/seed', requireApiKey, (req, res) => {
   const cleaned = users.map(e => e.trim().toLowerCase()).filter(Boolean);
   writeDeckUsers(req.params.slug, { users: cleaned });
   res.json({ seeded: true, count: cleaned.length });
+});
+
+// --- Admin dashboard (session-based auth) ---
+
+function sendView(res, viewName) {
+  const html = fs.readFileSync(path.join(__dirname, 'views', viewName), 'utf8');
+  res.type('html').send(html);
+}
+
+function requireAdmin(req, res, next) {
+  if (!req.isAuthenticated()) return res.redirect('/admin/login');
+  if (!ADMIN_EMAILS.includes((req.user.email || '').toLowerCase())) {
+    return res.status(403).send('Your account is not authorized as an admin.');
+  }
+  next();
+}
+
+app.get('/admin/login', (req, res) => {
+  if (req.isAuthenticated() && ADMIN_EMAILS.includes((req.user.email || '').toLowerCase())) {
+    return res.redirect('/admin');
+  }
+  sendView(res, 'dashboard-login.html');
+});
+
+app.get('/admin', requireAdmin, (req, res) => {
+  sendView(res, 'dashboard.html');
+});
+
+app.get('/admin/logout', (req, res) => {
+  req.logout(() => {
+    req.session.destroy();
+    res.redirect('/admin/login');
+  });
+});
+
+app.get('/admin/api/me', requireAdmin, (req, res) => {
+  res.json({ email: req.user.email, name: req.user.name, photo: req.user.photo });
+});
+
+app.get('/admin/api/decks', requireAdmin, (req, res) => {
+  try {
+    const entries = fs.readdirSync(DATA_DIR, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+      .map(d => d.name)
+      .filter(slug => fs.existsSync(path.join(DATA_DIR, slug, 'users.json')));
+    const decks = entries.map(slug => {
+      const data = readDeckUsers(slug);
+      return { slug, userCount: data.users.length };
+    });
+    res.json({ decks });
+  } catch {
+    res.json({ decks: [] });
+  }
+});
+
+app.get('/admin/api/decks/:slug', requireAdmin, (req, res) => {
+  res.json(readDeckUsers(req.params.slug));
+});
+
+app.post('/admin/api/decks/:slug', requireAdmin, (req, res) => {
+  const { emails } = req.body;
+  if (!emails || !Array.isArray(emails)) return res.status(400).json({ error: 'emails array required' });
+  const data = readDeckUsers(req.params.slug);
+  const added = [];
+  for (const raw of emails) {
+    const email = raw.trim().toLowerCase();
+    if (email && !data.users.includes(email)) {
+      data.users.push(email);
+      added.push(email);
+    }
+  }
+  writeDeckUsers(req.params.slug, data);
+  res.json({ added, total: data.users.length });
+});
+
+app.delete('/admin/api/decks/:slug/:email', requireAdmin, (req, res) => {
+  const data = readDeckUsers(req.params.slug);
+  const email = req.params.email.toLowerCase();
+  data.users = data.users.filter(e => e !== email);
+  writeDeckUsers(req.params.slug, data);
+  res.json({ removed: email, total: data.users.length });
 });
 
 app.get('/health', (req, res) => {

@@ -121,6 +121,7 @@ async function ensureAuthProxy(config) {
       { key: 'GOOGLE_CLIENT_SECRET', value: config.GOOGLE_CLIENT_SECRET },
       { key: 'AUTH_SECRET', value: config.AUTH_SECRET },
       { key: 'CALLBACK_URL', value: `${AUTH_SERVICE_URL}/auth/google/callback` },
+      { key: 'ADMIN_EMAILS', value: config.ADMIN_EMAILS },
       { key: 'DATA_DIR', value: '/var/data' },
       { key: 'NODE_ENV', value: 'production' }
     ],
