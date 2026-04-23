@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wix × Google — The Next Chapter (v2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=DM+Sans:opsz,wght@9..40,300..700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --g-blue:   #4285F4;
+    --g-red:    #EA4335;
+    --g-yellow: #FBBC04;
+    --g-green:  #34A853;
+
+    --ink:       #0B0B0F;
+    --ink-2:     #1A1A1F;
+    --paper:     #FFFFFF;
+    --paper-2:   #FAFAFA;
+    --rule:      #E4E4E8;
+    --mute:      #6B6B74;
+    --mute-2:    #9A9AA2;
+
+    --display: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
+    --body:    'DM Sans', 'Helvetica Neue', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--ink); color: var(--ink); font-family: var(--body); overflow: hidden; }
+
+  .stage {
+    position: fixed; inset: 0;
+    display: grid; place-items: center;
+    background: var(--ink);
+  }
+  .deck {
+    width: min(100vw, calc(100vh * 16 / 9));
+    aspect-ratio: 16 / 9;
+    position: relative;
+    background: var(--paper);
+    box-shadow: 0 40px 120px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+  .slide {
+    position: absolute; inset: 0;
+    display: none;
+    padding: 5.2% 5.5%;
+    background: var(--paper);
+    color: var(--ink);
+    flex-direction: column;
+  }
+  .slide.active { display: flex; }
+  .slide.dark { background: var(--ink); color: var(--paper); }
+
+  /* Chrome (top lockup + page number) */
+  .chrome {
+    position: absolute; left: 0; right: 0; top: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 2.4% 3%;
+    font-family: var(--body);
+    font-size: 0.72vw; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--mute);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .slide.dark .chrome { color: var(--mute-2); }
+  .lockup { display: inline-flex; align-items: center; gap: 0.8vw; font-weight: 500; }
+  .lockup .x {
+    display: inline-block; width: 0.5vw; height: 0.5vw; border-radius: 50%;
+    background: var(--g-blue);
+  }
+  .page-num { font-weight: 500; }
+
+  /* Footer */
+  .footer {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 2.4% 3%;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--body); font-size: 0.72vw; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--mute);
+    pointer-events: none;
+  }
+  .slide.dark .footer { color: var(--mute-2); }
+
+  .progress {
+    position: absolute; left: 0; bottom: 0; height: 2px;
+    background: var(--g-blue); transition: width .3s ease;
+  }
+
+  /* ====== PRIMITIVES ====== */
+  .eyebrow {
+    font-family: var(--body);
+    font-size: 0.92vw; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--mute); font-weight: 600;
+    margin-bottom: 1.6vw;
+  }
+  .eyebrow.blue  { color: var(--g-blue); }
+  .eyebrow.red   { color: var(--g-red); }
+  .eyebrow.green { color: var(--g-green); }
+  .eyebrow.ink   { color: var(--ink); }
+  .slide.dark .eyebrow { color: var(--mute-2); }
+  .slide.dark .eyebrow.blue  { color: var(--g-blue); }
+  .slide.dark .eyebrow.red   { color: var(--g-red); }
+  .slide.dark .eyebrow.green { color: var(--g-green); }
+
+  h1.display {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 7.2vw;
+    line-height: 0.95;
+    letter-spacing: -0.035em;
+  }
+  h2.headline {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 3.6vw;
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    max-width: 88%;
+  }
+  h3.sub {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.9vw;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+  p.lede {
+    font-family: var(--body);
+    font-size: 1.35vw; line-height: 1.5;
+    color: var(--ink-2); font-weight: 400;
+    max-width: 82%;
+  }
+  .slide.dark p.lede { color: #D7D7DC; }
+  p.body {
+    font-family: var(--body);
+    font-size: 1.12vw; line-height: 1.6; color: var(--ink-2);
+    max-width: 82%;
+  }
+  .slide.dark p.body { color: #C7C7CE; }
+
+  /* ASK tag */
+  .ask-tag {
+    margin-top: auto;
+    font-family: var(--body);
+    font-size: 0.95vw; letter-spacing: 0.2em; text-transform: uppercase;
+    font-weight: 700;
+    padding-top: 1.2vw;
+    border-top: 1px solid var(--rule);
+    max-width: 82%;
+  }
+  .ask-tag .arrow { opacity: 0.55; margin: 0 0.4vw; }
+  .ask-tag.blue  { color: var(--g-blue);  border-top-color: rgba(66,133,244,0.35); }
+  .ask-tag.red   { color: var(--g-red);   border-top-color: rgba(234,67,53,0.35); }
+  .ask-tag.green { color: var(--g-green); border-top-color: rgba(52,168,83,0.35); }
+
+  /* Accent ink bar */
+  .accent {
+    height: 0.45vw; width: 4vw;
+    background: var(--g-blue);
+    margin-bottom: 1.6vw;
+  }
+  .accent.red    { background: var(--g-red); }
+  .accent.yellow { background: var(--g-yellow); }
+  .accent.green  { background: var(--g-green); }
+
+  /* ====== PROOF ROW (TAM + Early Proof) ====== */
+  .proof-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 2vw;
+    margin-top: 2vw;
+    max-width: 95%;
+  }
+  .slide.content:not(.split) .proof-row { max-width: 75%; }
+  .proof-cell {
+    padding-top: 0.9vw;
+    border-top: 1px solid var(--rule);
+  }
+  .proof-cell .lbl {
+    font-family: var(--body);
+    font-size: 0.7vw; letter-spacing: 0.24em; text-transform: uppercase;
+    color: var(--mute); font-weight: 700;
+    margin-bottom: 0.7vw;
+  }
+  .proof-cell .val {
+    font-family: var(--display); font-weight: 700;
+    font-size: 1.5vw; line-height: 1.2; letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .proof-cell .val.placeholder {
+    color: var(--mute-2);
+    font-family: var(--body);
+    font-style: italic; font-weight: 500;
+    font-size: 1.1vw; line-height: 1.45;
+  }
+  .proof-cell .note {
+    font-family: var(--body); font-size: 0.72vw; color: var(--mute);
+    margin-top: 0.5vw; letter-spacing: 0.18em; text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* ====== SLIDE 01 — COVER (dark) ====== */
+  #s01 { padding: 5% 6%; }
+  #s01 .grid {
+    flex: 1; display: grid; grid-template-columns: 1fr auto;
+    align-items: end; gap: 2vw;
+  }
+  #s01 h1 {
+    font-family: var(--display); font-weight: 800;
+    font-size: 9vw; line-height: 0.92; letter-spacing: -0.045em;
+    color: var(--paper);
+  }
+  #s01 h1 .x {
+    display: inline-block; position: relative; top: -0.15em;
+    background: linear-gradient(90deg, var(--g-blue) 0 25%, var(--g-red) 25% 50%, var(--g-yellow) 50% 75%, var(--g-green) 75% 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    padding: 0 0.08em;
+  }
+  #s01 .meta {
+    text-align: right; color: #A8A8B0;
+    font-size: 1vw; letter-spacing: 0.14em; text-transform: uppercase;
+    line-height: 1.8;
+  }
+  #s01 .subtitle {
+    font-family: var(--body); font-size: 1.5vw; color: #C7C7CE;
+    margin-top: 2vw; font-weight: 400; max-width: 60%; line-height: 1.4;
+  }
+  #s01 .horizons {
+    position: absolute; left: 6%; bottom: 7.5%; display: flex; gap: 1.6vw; align-items: center;
+    color: #8C8C94; font-size: 0.85vw; letter-spacing: 0.2em; text-transform: uppercase;
+  }
+  #s01 .horizons .dot { width: 0.5vw; height: 0.5vw; border-radius: 50%; display: inline-block; margin-right: 0.5vw; vertical-align: middle; }
+  #s01 .horizons .d1 { background: var(--g-blue); }
+  #s01 .horizons .d2 { background: var(--g-red); }
+  #s01 .horizons .d3 { background: var(--g-green); }
+
+  /* ====== SLIDE 02 — WHERE WE STAND (tiles) ====== */
+  #s02 h2 { margin-bottom: 3vw; }
+  #s02 .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.4vw; }
+  #s02 .tile {
+    padding: 2vw 1.8vw; background: var(--paper-2); border-top: 3px solid var(--g-blue);
+    display: flex; flex-direction: column; justify-content: space-between;
+    min-height: 13vw;
+  }
+  #s02 .tile:nth-child(2) { border-top-color: var(--g-red); }
+  #s02 .tile:nth-child(3) { border-top-color: var(--g-yellow); }
+  #s02 .tile:nth-child(4) { border-top-color: var(--g-green); }
+  #s02 .tile .big {
+    font-family: var(--display); font-weight: 700; font-size: 3.4vw;
+    line-height: 1; letter-spacing: -0.028em;
+  }
+  #s02 .tile .lbl {
+    font-family: var(--body); font-size: 0.95vw; line-height: 1.4;
+    color: var(--mute); margin-top: auto; padding-top: 2vw; font-weight: 400;
+  }
+  #s02 .bottom {
+    margin-top: 2.6vw;
+    font-family: var(--display); font-size: 1.55vw; font-weight: 500; font-style: italic;
+    color: var(--ink-2); letter-spacing: -0.015em;
+  }
+
+  /* ====== SLIDE 04 — THREE HORIZONS (bands) ====== */
+  #s04 h2 { margin-bottom: 2vw; }
+  #s04 .bands { display: flex; flex-direction: column; flex: 1; justify-content: center; }
+  #s04 .band {
+    display: grid; grid-template-columns: 4vw 14vw 1fr 16vw; align-items: center;
+    padding: 1.6vw 0; border-bottom: 1px solid var(--rule); gap: 2vw;
+  }
+  #s04 .band:last-child { border-bottom: none; }
+  #s04 .band .idx {
+    font-family: var(--display); font-weight: 700; font-size: 2.8vw; line-height: 1;
+  }
+  #s04 .band:nth-child(1) .idx { color: var(--g-blue); }
+  #s04 .band:nth-child(2) .idx { color: var(--g-red); }
+  #s04 .band:nth-child(3) .idx { color: var(--g-green); }
+  #s04 .band .title {
+    font-family: var(--display); font-weight: 700; font-size: 1.9vw; letter-spacing: -0.02em;
+  }
+  #s04 .band .desc { font-size: 1.1vw; color: var(--ink-2); line-height: 1.5; }
+  #s04 .band .status {
+    font-family: var(--body); font-size: 0.78vw; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--mute); text-align: right;
+  }
+  #s04 .takeaway {
+    margin-top: 2vw;
+    font-family: var(--display); font-size: 1.4vw; font-weight: 500; font-style: italic;
+    letter-spacing: -0.015em;
+  }
+
+  /* ====== DIVIDER SLIDES ====== */
+  .slide.divider {
+    padding: 8% 6%;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .slide.divider .kick {
+    font-family: var(--body);
+    font-size: 1vw; letter-spacing: 0.32em; text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 1.6vw;
+  }
+  .slide.divider .big {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 10vw;
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    color: var(--paper);
+  }
+  .slide.divider .sub {
+    font-family: var(--body);
+    font-style: italic;
+    font-size: 1.6vw;
+    color: #BCBCC4;
+    margin-top: 2vw;
+    font-weight: 400;
+  }
+  #s05 .kick { color: var(--g-blue); }
+  #s14 .kick { color: var(--g-red); }
+  #s21 .kick { color: var(--g-green); }
+
+  /* ====== CONTENT TEMPLATE ====== */
+  .slide.content {
+    padding: 6% 6% 6.5%;
+    justify-content: flex-start;
+  }
+  .slide.content h2.headline {
+    margin-bottom: 2.4vw;
+    max-width: 86%;
+  }
+  .slide.content p.body,
+  .slide.content p.lede {
+    max-width: 78%;
+  }
+  .slide.content .body-stack {
+    display: flex; flex-direction: column; gap: 1.2vw;
+    max-width: 80%;
+  }
+  .slide.content .body-stack p {
+    font-family: var(--body); font-size: 1.15vw; line-height: 1.55; color: var(--ink-2);
+  }
+
+  /* Content split (Engine slides + Google One opportunity) */
+  .slide.content.split { padding: 5.5% 5.5% 6%; }
+  .slide.content.split .split-grid {
+    display: grid; grid-template-columns: 1.35fr 0.55fr; gap: 3vw;
+    flex: 1; align-items: stretch;
+  }
+  .slide.content.split .left { display: flex; flex-direction: column; }
+  .slide.content.split .left h2.headline { max-width: 100%; }
+  .slide.content.split .right {
+    display: flex; align-items: flex-start; justify-content: flex-end;
+    padding-top: 1.5vw;
+  }
+  .slide.content.split .engine-num {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 14vw;
+    line-height: 0.9;
+    letter-spacing: -0.05em;
+    opacity: 0.12;
+    color: var(--g-blue);
+  }
+  #s11 .engine-num { color: var(--g-red); opacity: 0.12; }
+  #s12 .engine-num { color: var(--g-green); opacity: 0.14; }
+  #s22 .engine-num { color: var(--g-green); opacity: 0.14; font-size: 13vw; }
+
+  /* Engine badges (slide 9) */
+  .engine-badges {
+    display: flex; flex-direction: column; gap: 1vw;
+    margin-top: 2.4vw;
+    max-width: 70%;
+  }
+  .engine-badges .badge {
+    display: grid; grid-template-columns: 4vw 1fr; align-items: center; gap: 1.2vw;
+    padding: 1.1vw 0;
+    border-top: 1px solid var(--rule);
+  }
+  .engine-badges .badge:last-child { border-bottom: 1px solid var(--rule); }
+  .engine-badges .badge .num {
+    font-family: var(--body); font-size: 0.82vw; letter-spacing: 0.18em; text-transform: uppercase;
+    font-weight: 700;
+  }
+  .engine-badges .badge:nth-child(1) .num { color: var(--g-blue); }
+  .engine-badges .badge:nth-child(2) .num { color: var(--g-red); }
+  .engine-badges .badge:nth-child(3) .num { color: var(--g-green); }
+  .engine-badges .badge .ttl {
+    font-family: var(--display); font-weight: 600; font-size: 1.5vw; letter-spacing: -0.015em;
+  }
+
+  /* ====== FUEL SLIDE (sFuel) — the marketing-investment statement ====== */
+  #sFuel .fuel-stack {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 2vw;
+    margin-top: 2.2vw; max-width: 88%;
+  }
+  #sFuel .fuel-col {
+    padding: 1.6vw 1.6vw;
+    background: var(--paper-2);
+    border-top: 3px solid var(--g-blue);
+    display: flex; flex-direction: column;
+  }
+  #sFuel .fuel-col.right { border-top-color: var(--g-yellow); }
+  #sFuel .fuel-col .lbl {
+    font-family: var(--body); font-size: 0.78vw; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--mute); font-weight: 700;
+    margin-bottom: 0.8vw;
+  }
+  #sFuel .fuel-col h3 {
+    font-family: var(--display); font-weight: 700; font-size: 1.7vw;
+    letter-spacing: -0.02em; line-height: 1.15;
+    margin-bottom: 0.8vw;
+  }
+  #sFuel .fuel-col p {
+    font-family: var(--body); font-size: 1vw; line-height: 1.55; color: var(--ink-2);
+  }
+  #sFuel .fuel-line {
+    margin-top: 2vw;
+    font-family: var(--display); font-style: italic; font-weight: 500;
+    font-size: 1.4vw; line-height: 1.4; letter-spacing: -0.015em;
+    max-width: 82%;
+  }
+
+  /* ====== SLIDE 17, 18 — UCP / USP ====== */
+  .slide.protocol .code {
+    font-family: var(--display); font-weight: 800; font-size: 6vw; line-height: 1;
+    letter-spacing: -0.04em;
+    margin-bottom: 1vw;
+  }
+  #s17 .code { color: var(--g-blue); }
+  #s18 .code { color: var(--g-red); }
+  .slide.protocol .for {
+    font-family: var(--body); font-size: 0.85vw; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--mute); margin-bottom: 1.8vw;
+    font-weight: 600;
+  }
+  .slide.protocol h2.headline { font-size: 3vw; margin-bottom: 2vw; max-width: 82%; }
+  .slide.protocol p.body { max-width: 78%; font-size: 1.15vw; }
+
+  /* ====== SLIDE 19 — TWO PATHS ====== */
+  #s19 h2 { margin-bottom: 2vw; max-width: 82%; }
+  #s19 .stack {
+    display: grid; grid-template-columns: 1fr 0.15fr 1fr; gap: 1.6vw; flex: 1; align-items: stretch;
+  }
+  #s19 .path {
+    padding: 1.8vw 1.8vw; background: var(--paper-2);
+    display: flex; flex-direction: column;
+    border-top: 3px solid var(--g-blue);
+  }
+  #s19 .path.right { border-top-color: var(--g-red); }
+  #s19 .path .lbl {
+    font-family: var(--body); font-size: 0.78vw; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--mute); margin-bottom: 0.6vw; font-weight: 600;
+  }
+  #s19 .path h3 { font-size: 1.5vw; margin-bottom: 1vw; }
+  #s19 .path p { font-size: 1vw; line-height: 1.55; color: var(--ink-2); }
+  #s19 .path .dep {
+    margin-top: auto; padding-top: 1vw;
+    font-family: var(--body); font-size: 0.78vw; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--mute);
+    border-top: 1px solid var(--rule);
+    font-weight: 600;
+  }
+  #s19 .mid {
+    display: grid; place-items: center;
+    font-family: var(--display); font-weight: 700; font-size: 0.95vw;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--mute);
+    writing-mode: vertical-rl; text-orientation: mixed;
+  }
+  #s19 .land {
+    margin-top: 1.8vw;
+    font-family: var(--display); font-size: 1.3vw; font-style: italic; font-weight: 500;
+    letter-spacing: -0.015em; color: var(--ink-2);
+  }
+
+  /* ====== SLIDE 24 — THREE TRACKS (cards) ====== */
+  #s24 h2 { margin-bottom: 2.4vw; max-width: 84%; }
+  #s24 .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6vw; flex: 1; }
+  #s24 .card {
+    display: flex; flex-direction: column; padding: 1.8vw;
+    background: var(--paper-2); position: relative;
+    border-top: 3px solid var(--g-blue);
+  }
+  #s24 .card:nth-child(2) { border-top-color: var(--g-red); }
+  #s24 .card:nth-child(3) { border-top-color: var(--g-green); }
+  #s24 .card .topic {
+    font-family: var(--body); font-size: 0.85vw;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--mute);
+    font-weight: 700;
+    margin-bottom: 0.8vw;
+  }
+  #s24 .card .topic .roman {
+    font-family: var(--display); font-weight: 700; font-size: 1.6vw;
+    letter-spacing: -0.02em; margin-right: 0.6vw; vertical-align: -0.15em;
+  }
+  #s24 .card:nth-child(1) .topic .roman { color: var(--g-blue); }
+  #s24 .card:nth-child(2) .topic .roman { color: var(--g-red); }
+  #s24 .card:nth-child(3) .topic .roman { color: var(--g-green); }
+  #s24 .card h3 {
+    font-family: var(--display); font-weight: 700;
+    font-size: 1.7vw; letter-spacing: -0.02em;
+    color: var(--ink); line-height: 1.1;
+    margin-bottom: 1vw;
+  }
+  #s24 .card p {
+    font-size: 1vw; line-height: 1.55; color: var(--ink-2);
+  }
+  #s24 .card .outcome {
+    margin-top: auto; padding-top: 1vw;
+    border-top: 1px solid var(--rule);
+    font-family: var(--body); font-size: 0.78vw; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--mute);
+    font-weight: 600;
+  }
+
+  /* ====== ASKS SUMMARY SLIDE (sAsks) ====== */
+  #sAsks h2 { margin-bottom: 2.4vw; max-width: 80%; }
+  #sAsks .asks-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6vw;
+    flex: 1;
+  }
+  #sAsks .asks-col {
+    display: flex; flex-direction: column;
+    padding: 1.8vw 1.6vw;
+    background: var(--paper-2);
+    border-top: 3px solid var(--g-blue);
+  }
+  #sAsks .asks-col:nth-child(2) { border-top-color: var(--g-red); }
+  #sAsks .asks-col:nth-child(3) { border-top-color: var(--g-green); }
+  #sAsks .asks-col .topic {
+    font-family: var(--body); font-size: 0.82vw;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--mute);
+    font-weight: 700;
+    margin-bottom: 1.4vw;
+  }
+  #sAsks .asks-col .topic .roman {
+    font-family: var(--display); font-weight: 700; font-size: 1.7vw;
+    letter-spacing: -0.02em; margin-right: 0.55vw; vertical-align: -0.15em;
+  }
+  #sAsks .asks-col:nth-child(1) .topic .roman { color: var(--g-blue); }
+  #sAsks .asks-col:nth-child(2) .topic .roman { color: var(--g-red); }
+  #sAsks .asks-col:nth-child(3) .topic .roman { color: var(--g-green); }
+  #sAsks .asks-col ul { list-style: none; display: flex; flex-direction: column; gap: 1.1vw; }
+  #sAsks .asks-col li {
+    font-family: var(--body); font-size: 1vw; line-height: 1.5;
+    color: var(--ink-2);
+    padding-left: 1.6vw; position: relative;
+  }
+  #sAsks .asks-col li::before {
+    content: "→";
+    position: absolute; left: 0; top: 0;
+    font-weight: 700; font-size: 1.05vw;
+    color: var(--mute-2);
+  }
+
+  /* ====== SLIDE 26 — CLOSING (dark stamp) ====== */
+  #s26 {
+    padding: 7% 6% 8%;
+    align-items: center; justify-content: center; text-align: center;
+  }
+  #s26 .kick {
+    font-family: var(--body);
+    font-size: 1vw; letter-spacing: 0.3em; text-transform: uppercase;
+    font-weight: 700;
+    color: var(--g-blue);
+    margin-bottom: 2vw;
+  }
+  #s26 h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 5.8vw;
+    line-height: 1.08;
+    letter-spacing: -0.035em;
+    color: var(--paper);
+  }
+  #s26 .thanks {
+    font-family: var(--body); font-style: italic;
+    font-size: 1.2vw; color: #BCBCC4;
+    margin-top: 3.5vw;
+  }
+
+  /* Help overlay */
+  .help {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: rgba(0,0,0,0.6); color: #fff; padding: 8px 14px; border-radius: 24px;
+    font-family: var(--body); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    backdrop-filter: blur(8px); z-index: 50; opacity: 0.6; transition: opacity .2s;
+  }
+  .help:hover { opacity: 1; }
+  .help kbd { background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px; margin: 0 2px; }
+
+  /* Version tag (tiny, bottom-left corner of deck, outside chrome) */
+  .vtag {
+    position: absolute; left: 3%; top: 2.4%;
+    font-family: var(--body); font-size: 0.68vw;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--mute-2); font-weight: 700;
+    pointer-events: none; z-index: 3;
+    display: none;
+  }
+
+  @media print {
+    @page { size: 16in 9in; margin: 0; }
+    body, html, .stage { background: #fff; overflow: visible; height: auto; }
+    .stage { display: block; position: static; }
+    .deck { box-shadow: none; width: 16in; height: 9in; aspect-ratio: auto; }
+    .slide { display: flex !important; page-break-after: always; break-after: page; position: relative; width: 16in; height: 9in; }
+    .help, .progress { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="deck" id="deck">
+
+    <!-- ===== 01. COVER ===== -->
+    <section class="slide dark active" id="s01">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google · Confidential · v2</span>
+        <span class="page-num">01 / 29</span>
+      </div>
+      <div class="grid">
+        <div>
+          <h1>Wix <span class="x">×</span> Google</h1>
+          <p class="subtitle">A Strategic Partnership — the Next Chapter.</p>
+        </div>
+        <div class="meta">
+          <div>Leadership Dialogue</div>
+          <div>2026</div>
+        </div>
+      </div>
+      <div class="horizons">
+        <span><span class="dot d1"></span>Workspace</span>
+        <span><span class="dot d2"></span>Agentic</span>
+        <span><span class="dot d3"></span>Google One</span>
+      </div>
+    </section>
+
+    <!-- ===== 02. WHERE WE STAND ===== -->
+    <section class="slide" id="s02">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">02 / 29</span>
+      </div>
+      <div class="eyebrow blue">01 &nbsp;·&nbsp; Opening Context</div>
+      <h2 class="headline">Where we stand, together.</h2>
+      <div class="tiles" style="margin-top: 2.4vw;">
+        <div class="tile"><div class="big">1.87M</div><div class="lbl">Workspace seats sold by Wix</div></div>
+        <div class="tile"><div class="big">Top<br/>Seller</div><div class="lbl">#1 global Workspace distributor</div></div>
+        <div class="tile"><div class="big">$200M+</div><div class="lbl">Annual partnership revenue</div></div>
+        <div class="tile"><div class="big">H1 · 27</div><div class="lbl">Current contract runs through</div></div>
+      </div>
+      <div class="bottom">Today's conversation is about what comes next.</div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Where We Stand</span>
+      </div>
+      <div class="progress" style="width: 6.90%;"></div>
+    </section>
+
+    <!-- ===== 03. INTENT ===== -->
+    <section class="slide content" id="s03">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">03 / 29</span>
+      </div>
+      <div class="eyebrow blue">01 &nbsp;·&nbsp; Intent</div>
+      <h2 class="headline">Three horizons we'd like to open — together.</h2>
+      <p class="lede">This isn't a negotiation. It's a conversation about where Wix × Google goes next — across the Workspace renewal, the agentic stack we're both building toward, and a net-new Google One surface.</p>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>The Intent</span>
+      </div>
+      <div class="progress" style="width: 10.34%;"></div>
+    </section>
+
+    <!-- ===== 04. THREE HORIZONS MAP ===== -->
+    <section class="slide" id="s04">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">04 / 29</span>
+      </div>
+      <div class="eyebrow blue">01 &nbsp;·&nbsp; The Map</div>
+      <h2 class="headline">Three horizons on one roadmap.</h2>
+      <div class="bands">
+        <div class="band">
+          <div class="idx">I</div>
+          <div class="title">Workspace</div>
+          <div class="desc">Renewing from strength.</div>
+          <div class="status">Core Business &nbsp;·&nbsp; Renewal H1·27</div>
+        </div>
+        <div class="band">
+          <div class="idx">II</div>
+          <div class="title">Agentic</div>
+          <div class="desc">Commerce & services, jointly owned.</div>
+          <div class="status">In Build &nbsp;·&nbsp; Needs Leadership Alignment</div>
+        </div>
+        <div class="band">
+          <div class="idx">III</div>
+          <div class="title">Google One</div>
+          <div class="desc">A net-new consumer surface.</div>
+          <div class="status">Very Early &nbsp;·&nbsp; Needs Executive Sponsor</div>
+        </div>
+      </div>
+      <div class="takeaway">Every Wix user is a candidate for one, two, or all three.</div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Three Horizons</span>
+      </div>
+      <div class="progress" style="width: 13.79%;"></div>
+    </section>
+
+    <!-- ===== 05. HORIZON I DIVIDER ===== -->
+    <section class="slide dark divider" id="s05">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">05 / 29</span>
+      </div>
+      <div class="kick">Horizon I</div>
+      <div class="big">Workspace.</div>
+      <div class="sub">Renewing from strength.</div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Horizon I · Workspace</span>
+      </div>
+      <div class="progress" style="width: 17.24%;"></div>
+    </section>
+
+    <!-- ===== 06. 2026 LOOKS STRONG ===== -->
+    <section class="slide content" id="s06">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">06 / 29</span>
+      </div>
+      <div class="eyebrow blue">02 &nbsp;·&nbsp; Workspace</div>
+      <h2 class="headline">2026 looks strong — on the surface.</h2>
+      <p class="lede">Revenue up. Seats expanding. Top-line momentum is real — and the product engine has been humming.</p>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Workspace · 2026 on the Surface</span>
+      </div>
+      <div class="progress" style="width: 20.69%;"></div>
+    </section>
+
+    <!-- ===== 07. BUT ZOOM IN ===== -->
+    <section class="slide content" id="s07">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">07 / 29</span>
+      </div>
+      <div class="eyebrow blue">02 &nbsp;·&nbsp; Workspace</div>
+      <h2 class="headline">But zoom in, and two stories blur into one.</h2>
+      <div class="body-stack">
+        <p>One is a one-time lift from pricing.</p>
+        <p>The other is the underlying run-rate.</p>
+        <p style="margin-top: 1.2vw; font-style: italic; font-family: var(--display); font-weight: 500; font-size: 1.4vw; letter-spacing: -0.015em; color: var(--ink);">Read as the same story, we mis-price the next chapter.</p>
+      </div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Workspace · The Two Stories</span>
+      </div>
+      <div class="progress" style="width: 24.14%;"></div>
+    </section>
+
+    <!-- ===== 08. THE REAL QUESTION ===== -->
+    <section class="slide content" id="s08">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">08 / 29</span>
+      </div>
+      <div class="eyebrow blue">02 &nbsp;·&nbsp; Workspace</div>
+      <h2 class="headline">The real question isn't how 2026 closes.<br/>It's what we renew from.</h2>
+      <div class="body-stack">
+        <p>Coasting on the surface number sets a ceiling.</p>
+        <p>Investing in the real growth engines resets the floor.</p>
+      </div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Workspace · The Real Question</span>
+      </div>
+      <div class="progress" style="width: 27.59%;"></div>
+    </section>
+
+    <!-- ===== 09. THREE GROWTH ENGINES INTRO ===== -->
+    <section class="slide content" id="s09">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">09 / 29</span>
+      </div>
+      <div class="eyebrow blue">02 &nbsp;·&nbsp; Workspace</div>
+      <h2 class="headline">The three growth engines shaping the next chapter of Workspace — together.</h2>
+      <p class="lede">Three engines. Already in motion. Each compounds the others.</p>
+      <div class="engine-badges">
+        <div class="badge">
+          <div class="num">01</div>
+          <div class="ttl">AI Positioning</div>
+        </div>
+        <div class="badge">
+          <div class="num">02</div>
+          <div class="ttl">Rookie Domains</div>
+        </div>
+        <div class="badge">
+          <div class="num">03</div>
+          <div class="ttl">Gemini Enterprise</div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Workspace · Three Growth Engines</span>
+      </div>
+      <div class="progress" style="width: 31.03%;"></div>
+    </section>
+
+    <!-- ===== 10. ENGINE 01 — AI POSITIONING ===== -->
+    <section class="slide content split" id="s10">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">10 / 29</span>
+      </div>
+      <div class="split-grid">
+        <div class="left">
+          <div class="eyebrow blue">02 &nbsp;·&nbsp; Workspace &nbsp;|&nbsp; Engine 01</div>
+          <h2 class="headline">AI Positioning — turning Workspace into the SMB AI story.</h2>
+          <p class="body" style="margin-top: 1.6vw;">Gemini, Duet, and NotebookLM reframe Workspace for SMBs — from productivity suite to AI-native operating layer. <strong>The lift is already visible in the data.</strong></p>
+          <div class="proof-row">
+            <div class="proof-cell">
+              <div class="lbl">Addressable Opportunity</div>
+              <div class="val placeholder">[~XX M SMB seats in scope]</div>
+              <div class="note">TAM to finalize</div>
+            </div>
+            <div class="proof-cell">
+              <div class="lbl">Early Proof</div>
+              <div class="val placeholder">[+XX% conversion lift vs. control]</div>
+              <div class="note">Test data incoming</div>
+            </div>
+          </div>
+          <div class="ask-tag blue">Ask <span class="arrow">→</span> Fund marketing campaigns behind the AI positioning Wix is building</div>
+        </div>
+        <div class="right">
+          <div class="engine-num">01</div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Engine 01 · AI Positioning</span>
+      </div>
+      <div class="progress" style="width: 34.48%;"></div>
+    </section>
+
+    <!-- ===== 11. ENGINE 02 — ROOKIE DOMAINS ===== -->
+    <section class="slide content split" id="s11">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">11 / 29</span>
+      </div>
+      <div class="split-grid">
+        <div class="left">
+          <div class="eyebrow blue">02 &nbsp;·&nbsp; Workspace &nbsp;|&nbsp; Engine 02</div>
+          <h2 class="headline">Rookie Domains — an untapped seat pipeline sitting inside Wix.</h2>
+          <p class="body" style="margin-top: 1.6vw;">Every new domain registered on Wix is a potential Workspace customer. A native surface neither partner has activated. <strong>Pure incremental upside.</strong></p>
+          <div class="proof-row">
+            <div class="proof-cell">
+              <div class="lbl">Addressable Opportunity</div>
+              <div class="val placeholder">[~XX K new domains / month]</div>
+              <div class="note">Wix domain registrations</div>
+            </div>
+            <div class="proof-cell">
+              <div class="lbl">Early Proof</div>
+              <div class="val placeholder">[XX% attach rate expected]</div>
+              <div class="note">Pilot results pending</div>
+            </div>
+          </div>
+          <div class="ask-tag blue">Ask <span class="arrow">→</span> Fund marketing campaigns behind the rookie-domain motion Wix is building</div>
+        </div>
+        <div class="right">
+          <div class="engine-num">02</div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Engine 02 · Rookie Domains</span>
+      </div>
+      <div class="progress" style="width: 37.93%;"></div>
+    </section>
+
+    <!-- ===== 12. ENGINE 03 — GEMINI ENTERPRISE ===== -->
+    <section class="slide content split" id="s12">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">12 / 29</span>
+      </div>
+      <div class="split-grid">
+        <div class="left">
+          <div class="eyebrow blue">02 &nbsp;·&nbsp; Workspace &nbsp;|&nbsp; Engine 03</div>
+          <h2 class="headline">Gemini Enterprise — resell becomes real when the connector is real.</h2>
+          <p class="body" style="margin-top: 1.6vw;">We'd like to resell Gemini Enterprise to Wix's SMB base. Without a deep Wix connector, resell is promotion. <strong>With it, resell is distribution.</strong></p>
+          <div class="proof-row">
+            <div class="proof-cell">
+              <div class="lbl">Addressable Opportunity</div>
+              <div class="val placeholder">[~XX M SMB base in resell scope]</div>
+              <div class="note">Wix SMB view</div>
+            </div>
+            <div class="proof-cell">
+              <div class="lbl">Early Proof</div>
+              <div class="val placeholder">[XX% intent from Wix SMB survey]</div>
+              <div class="note">Signal to be finalized</div>
+            </div>
+          </div>
+          <div class="ask-tag blue">Ask <span class="arrow">→</span> Prioritize the deep Wix connector — turn resell into distribution</div>
+        </div>
+        <div class="right">
+          <div class="engine-num">03</div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Engine 03 · Gemini Enterprise</span>
+      </div>
+      <div class="progress" style="width: 41.38%;"></div>
+    </section>
+
+    <!-- ===== 13. ENGINES ACTIVATED TOGETHER (Marketing Investment Framing) ===== -->
+    <section class="slide content" id="sFuel">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">13 / 29</span>
+      </div>
+      <div class="eyebrow blue">02 &nbsp;·&nbsp; Workspace</div>
+      <h2 class="headline">Three engines.<br/>Built by Wix. Fueled by Google.</h2>
+      <p class="lede">Wix develops and optimizes the products — the AI positioning work, the rookie-domain motion, and the Wix side of Gemini Enterprise. What turns those products into market-reshaping growth is Google funding the marketing campaigns behind them.</p>
+      <div class="fuel-stack">
+        <div class="fuel-col">
+          <div class="lbl">Wix Invests</div>
+          <h3>Developing &amp; optimizing the products</h3>
+          <p>The AI positioning work. The rookie-domain motion. The Wix-side build for Gemini Enterprise. Developed and operated inside Wix.</p>
+        </div>
+        <div class="fuel-col right">
+          <div class="lbl">Google Invests</div>
+          <h3>Funding the marketing campaigns</h3>
+          <p>The marketing spend behind each engine — turning Wix-built products into market-reshaping velocity.</p>
+        </div>
+      </div>
+      <div class="fuel-line">Our strongest chapters have been the ones where Wix builds and Google amplifies.</div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Workspace · Built × Fueled</span>
+      </div>
+      <div class="progress" style="width: 44.83%;"></div>
+    </section>
+
+    <!-- ===== 14. RENEW FROM MOMENTUM ===== -->
+    <section class="slide content" id="s13">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">14 / 29</span>
+      </div>
+      <div class="eyebrow blue">02 &nbsp;·&nbsp; Workspace</div>
+      <h2 class="headline">Renew from momentum —<br/>not from a missed year.</h2>
+      <div class="body-stack">
+        <p>Invest together in the real engines now.</p>
+        <p>Walk into H2 2027 renewal with growth both sides can stand behind.</p>
+      </div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Workspace · Renew From Momentum</span>
+      </div>
+      <div class="progress" style="width: 48.28%;"></div>
+    </section>
+
+    <!-- ===== 15. HORIZON II DIVIDER — AGENTIC ===== -->
+    <section class="slide dark divider" id="s14">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">15 / 29</span>
+      </div>
+      <div class="kick">Horizon II</div>
+      <div class="big">Agentic.</div>
+      <div class="sub">Commerce & services, jointly owned.</div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Horizon II · Agentic</span>
+      </div>
+      <div class="progress" style="width: 51.72%;"></div>
+    </section>
+
+    <!-- ===== 16. AGENTS ARE THE INTERFACE ===== -->
+    <section class="slide content" id="s15">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">16 / 29</span>
+      </div>
+      <div class="eyebrow red">03 &nbsp;·&nbsp; Agentic</div>
+      <h2 class="headline">Agents are becoming the interface to SMB commerce and services.</h2>
+      <p class="lede">Every AI surface — Search, Shopping, Gemini — now needs a way to transact with real businesses. The question is how those businesses show up.</p>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Agentic · The Shift Underway</span>
+      </div>
+      <div class="progress" style="width: 55.17%;"></div>
+    </section>
+
+    <!-- ===== 17. TWO COMPLEMENTARY PROTOCOLS ===== -->
+    <section class="slide content" id="s16">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">17 / 29</span>
+      </div>
+      <div class="eyebrow red">03 &nbsp;·&nbsp; Agentic &nbsp;|&nbsp; Protocol Layer</div>
+      <h2 class="headline">Two complementary protocols —<br/>one yours, one ours.</h2>
+      <div class="body-stack">
+        <p><strong style="color: var(--g-blue);">UCP</strong> — Google's protocol for eCommerce.</p>
+        <p><strong style="color: var(--g-red);">USP</strong> — Wix's protocol for services.</p>
+        <p style="margin-top: 1.2vw; font-style: italic; font-family: var(--display); font-weight: 500; font-size: 1.4vw; letter-spacing: -0.015em; color: var(--ink);">Different origins. Same destination.</p>
+      </div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Agentic · Two Protocols</span>
+      </div>
+      <div class="progress" style="width: 58.62%;"></div>
+    </section>
+
+    <!-- ===== 18. UCP ===== -->
+    <section class="slide content protocol" id="s17">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">18 / 29</span>
+      </div>
+      <div class="eyebrow red">03 &nbsp;·&nbsp; Agentic &nbsp;|&nbsp; UCP</div>
+      <div class="code">UCP</div>
+      <h2 class="headline">Universal Commerce Protocol.</h2>
+      <div class="for">Google-Authored &nbsp;·&nbsp; For eCommerce</div>
+      <p class="body">Google-authored. Wix already endorsed it and built against it on our end. What's missing — <strong>Google onboarding Wix on yours</strong>, so our merchants become visible in UCP surfaces.</p>
+      <div class="ask-tag blue">Ask <span class="arrow">→</span> Google onboards Wix on UCP</div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Agentic · UCP</span>
+      </div>
+      <div class="progress" style="width: 62.07%;"></div>
+    </section>
+
+    <!-- ===== 19. USP ===== -->
+    <section class="slide content protocol" id="s18">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">19 / 29</span>
+      </div>
+      <div class="eyebrow red">03 &nbsp;·&nbsp; Agentic &nbsp;|&nbsp; USP</div>
+      <div class="code">USP</div>
+      <h2 class="headline">Universal Services Protocol.</h2>
+      <div class="for">Wix-Authored &nbsp;·&nbsp; For Services</div>
+      <p class="body">Wix-authored. Published as an industry-open standard — not a Wix API. Exposes bookings, staff, calendars, and pricing to the agent layer <strong>across the services economy</strong>.</p>
+      <div class="ask-tag red">Ask <span class="arrow">→</span> Google becomes the priority consumer</div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Agentic · USP</span>
+      </div>
+      <div class="progress" style="width: 65.52%;"></div>
+    </section>
+
+    <!-- ===== 20. TWO PATHS TO THE AGENT ===== -->
+    <section class="slide" id="s19">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">20 / 29</span>
+      </div>
+      <div class="eyebrow red">03 &nbsp;·&nbsp; Agentic &nbsp;|&nbsp; Agent Layer</div>
+      <h2 class="headline">Two paths to the agent — one architecture.</h2>
+      <div class="stack">
+        <div class="path">
+          <div class="lbl">Path 01</div>
+          <h3 class="sub">Wix Merchant Agent</h3>
+          <p style="margin-top: 0.8vw;">Built on Wix MCP. Answers on Wix surfaces. Acts on behalf of the merchant across their Wix business — site, storefront, bookings, customers.</p>
+          <div class="dep">Wix-Native &nbsp;·&nbsp; No External Dependency</div>
+        </div>
+        <div class="mid">&nbsp;Same Architecture&nbsp;</div>
+        <div class="path right">
+          <div class="lbl">Path 02</div>
+          <h3 class="sub">Wix Connector for Gemini Enterprise</h3>
+          <p style="margin-top: 0.8vw;">Same SMB base. Answers inside Google. Same behavior as the Merchant Agent — operating on Gemini Enterprise rather than Wix MCP.</p>
+          <div class="dep">Google-Dependent &nbsp;·&nbsp; Unlocks the Resell</div>
+        </div>
+      </div>
+      <div class="land">Both speak UCP. Both speak USP. Both represent the same merchants.</div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Agentic · Two Paths</span>
+      </div>
+      <div class="progress" style="width: 68.97%;"></div>
+    </section>
+
+    <!-- ===== 21. SMB SURFACE ===== -->
+    <section class="slide content" id="s20">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">21 / 29</span>
+      </div>
+      <div class="eyebrow red">03 &nbsp;·&nbsp; Agentic</div>
+      <h2 class="headline" style="font-size: 3.2vw;">The largest homogeneous SMB surface in the world — flowing into Google's agentic stack.</h2>
+      <div class="body-stack" style="margin-top: 1.8vw;">
+        <p>Every agent Google ships needs real merchant data to transact.</p>
+        <p>Wix represents millions of SMBs — already built against UCP, authoring USP.</p>
+        <p style="margin-top: 1vw; font-style: italic; font-family: var(--display); font-weight: 500; font-size: 1.4vw; letter-spacing: -0.015em; color: var(--ink);">Ready to flow in.</p>
+      </div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Agentic · The SMB Surface</span>
+      </div>
+      <div class="progress" style="width: 72.41%;"></div>
+    </section>
+
+    <!-- ===== 22. HORIZON III DIVIDER — GOOGLE ONE ===== -->
+    <section class="slide dark divider" id="s21">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">22 / 29</span>
+      </div>
+      <div class="kick">Horizon III</div>
+      <div class="big">Google One.</div>
+      <div class="sub">A new consumer surface.</div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Horizon III · Google One</span>
+      </div>
+      <div class="progress" style="width: 75.86%;"></div>
+    </section>
+
+    <!-- ===== 23. GOOGLE ONE — NET-NEW CONSUMER SURFACE + TAM ===== -->
+    <section class="slide content split" id="s22">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">23 / 29</span>
+      </div>
+      <div class="split-grid">
+        <div class="left">
+          <div class="eyebrow green">04 &nbsp;·&nbsp; Google One</div>
+          <h2 class="headline">Google One — a net-new consumer surface inside Wix.</h2>
+          <p class="body" style="margin-top: 1.6vw;">Wix's consumer and prosumer base is already buying storage, productivity, and AI subscriptions — elsewhere. There's a natural resell opportunity we haven't explored together.</p>
+          <div class="proof-row">
+            <div class="proof-cell">
+              <div class="lbl">Addressable Opportunity</div>
+              <div class="val placeholder">[~XX M prosumer / consumer users]</div>
+              <div class="note">Wix consumer view</div>
+            </div>
+            <div class="proof-cell">
+              <div class="lbl">Early Proof</div>
+              <div class="val placeholder">[XX% already pay for equivalent services]</div>
+              <div class="note">Benchmark pending</div>
+            </div>
+          </div>
+        </div>
+        <div class="right">
+          <div class="engine-num">III</div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Google One · The Surface</span>
+      </div>
+      <div class="progress" style="width: 79.31%;"></div>
+    </section>
+
+    <!-- ===== 24. SEAT-BASED TOO ===== -->
+    <section class="slide content" id="sSeats">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">24 / 29</span>
+      </div>
+      <div class="eyebrow green">04 &nbsp;·&nbsp; Google One</div>
+      <h2 class="headline">Seat-based too —<br/>same economics, different audience.</h2>
+      <p class="lede">Google One isn't a storage add-on — it's a seat. Same recurring, per-user shape that made Workspace our largest joint revenue line. The difference is audience: the prosumer and consumer base Workspace can't reach.</p>
+      <div class="body-stack" style="margin-top: 1.8vw;">
+        <p>Wix's distribution machine was built for this economic model.</p>
+        <p>Pointing it at Google One adds a <strong>net-new seat line</strong> — with zero overlap to Workspace.</p>
+      </div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Google One · Seat-Based</span>
+      </div>
+      <div class="progress" style="width: 82.76%;"></div>
+    </section>
+
+    <!-- ===== 25. ONE EXPLORATORY CALL ===== -->
+    <section class="slide content" id="s23">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">25 / 29</span>
+      </div>
+      <div class="eyebrow green">04 &nbsp;·&nbsp; Google One</div>
+      <h2 class="headline">One exploratory call in.<br/>We'd like executive sponsorship to go deeper.</h2>
+      <p class="body" style="margin-top: 1.6vw;">This is the newest of the three horizons. It needs a sponsor on your side who can pull the right team in — to seriously evaluate scope and fit.</p>
+      <div class="ask-tag green">Ask <span class="arrow">→</span> A Google executive sponsor to scope the opportunity</div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Google One · The Ask</span>
+      </div>
+      <div class="progress" style="width: 86.21%;"></div>
+    </section>
+
+    <!-- ===== 26. THREE TRACKS ===== -->
+    <section class="slide" id="s24">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">26 / 29</span>
+      </div>
+      <div class="eyebrow ink">Closing</div>
+      <h2 class="headline">Three tracks we'd like to carry forward — together.</h2>
+      <div class="cards">
+        <div class="card">
+          <div class="topic"><span class="roman">I</span> Workspace</div>
+          <h3>Invest together in the real growth engines.</h3>
+          <p>Rebuild the run-rate story ahead of H1 2027 renewal — across AI Positioning, Rookie Domains, and Gemini Enterprise.</p>
+          <div class="outcome">Teams Aligned &nbsp;·&nbsp; Renewal Framework</div>
+        </div>
+        <div class="card">
+          <div class="topic"><span class="roman">II</span> Agentic</div>
+          <h3>Onboard Wix on UCP. Priority consumer of USP. Merchant Agent aligned.</h3>
+          <p>Leadership agreement that UCP, USP, the Merchant Agent, and the Gemini Enterprise connector belong inside the core partnership.</p>
+          <div class="outcome">Named Counterparts &nbsp;·&nbsp; Working Cadence</div>
+        </div>
+        <div class="card">
+          <div class="topic"><span class="roman">III</span> Google One</div>
+          <h3>An executive sponsor — to scope the opportunity together.</h3>
+          <p>Sponsored introduction to Google One leadership. Wix moves quickly from there — pilot scoping, commercial structure, GTM.</p>
+          <div class="outcome">Sponsored Intro &nbsp;·&nbsp; Fast Follow-Up</div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Three Tracks Forward</span>
+      </div>
+      <div class="progress" style="width: 89.66%;"></div>
+    </section>
+
+    <!-- ===== 27. NAMED COUNTERPARTS ===== -->
+    <section class="slide content" id="s25">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">27 / 29</span>
+      </div>
+      <div class="eyebrow ink">Closing</div>
+      <h2 class="headline">Named counterparts.<br/>Shared rhythm. Shared scoreboard.</h2>
+      <div class="body-stack" style="margin-top: 1.6vw;">
+        <p>For each track — a named lead on each side.</p>
+        <p>A quarterly leadership review.</p>
+        <p>One view of joint growth across Workspace, Agentic, and Google One.</p>
+      </div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Operating Rhythm</span>
+      </div>
+      <div class="progress" style="width: 93.10%;"></div>
+    </section>
+
+    <!-- ===== 28. CLEAR ASKS SUMMARY ===== -->
+    <section class="slide" id="sAsks">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">28 / 29</span>
+      </div>
+      <div class="eyebrow ink">Closing &nbsp;·&nbsp; What We'd Like To Take Away</div>
+      <h2 class="headline">The concrete asks.</h2>
+      <div class="asks-grid">
+        <div class="asks-col">
+          <div class="topic"><span class="roman">I</span> Workspace</div>
+          <ul>
+            <li>Google funds marketing campaigns behind the three engines Wix is building.</li>
+            <li>Google prioritizes the deep Wix connector for Gemini Enterprise.</li>
+            <li>Multi-year renewal framework, locked ahead of H1 2027.</li>
+          </ul>
+        </div>
+        <div class="asks-col">
+          <div class="topic"><span class="roman">II</span> Agentic</div>
+          <ul>
+            <li>Google onboards Wix on UCP.</li>
+            <li>Google becomes the priority consumer of USP.</li>
+            <li>Align Merchant Agent + Gemini Enterprise connector inside the core partnership.</li>
+          </ul>
+        </div>
+        <div class="asks-col">
+          <div class="topic"><span class="roman">III</span> Google One</div>
+          <ul>
+            <li>Executive sponsor to scope the seat-based opportunity together.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>The Concrete Asks</span>
+      </div>
+      <div class="progress" style="width: 96.55%;"></div>
+    </section>
+
+    <!-- ===== 29. CLOSING STAMP ===== -->
+    <section class="slide dark" id="s26">
+      <div class="chrome">
+        <span class="lockup"><span class="x"></span>Wix × Google</span>
+        <span class="page-num">29 / 29</span>
+      </div>
+      <div class="kick">Wix &nbsp;×&nbsp; Google</div>
+      <h1>
+        <span style="color: var(--g-blue);">One partnership.</span><br/>
+        <span style="color: var(--g-yellow);">Three horizons.</span><br/>
+        <span style="color: var(--g-green);">The next chapter.</span>
+      </h1>
+      <div class="thanks">Thank you.</div>
+      <div class="footer">
+        <span>Strategic Partnership Growth</span>
+        <span>Thank you</span>
+      </div>
+      <div class="progress" style="width: 100%;"></div>
+    </section>
+
+  </div>
+</div>
+
+<div class="help">
+  <kbd>←</kbd> <kbd>→</kbd> Navigate &nbsp;·&nbsp; <kbd>Space</kbd> Next &nbsp;·&nbsp; <kbd>F</kbd> Fullscreen &nbsp;·&nbsp; <kbd>P</kbd> Print / PDF
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let i = 0;
+
+  function show(n) {
+    if (n < 0 || n >= slides.length) return;
+    slides[i].classList.remove('active');
+    i = n;
+    slides[i].classList.add('active');
+    if (String(i + 1) !== window.location.hash.replace('#','')) {
+      history.replaceState(null, '', '#' + String(i + 1));
+    }
+  }
+
+  function applyHash() {
+    const m = window.location.hash.match(/^#?(\d+)$/);
+    if (m) {
+      const n = parseInt(m[1], 10) - 1;
+      if (n >= 0 && n < slides.length) show(n);
+    }
+  }
+  applyHash();
+  window.addEventListener('hashchange', applyHash);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') show(0);
+    else if (e.key === 'End') show(slides.length - 1);
+    else if (e.key.toLowerCase() === 'f') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+    else if (e.key.toLowerCase() === 'p') {
+      slides.forEach(s => s.classList.add('active'));
+      window.print();
+      setTimeout(() => {
+        slides.forEach(s => s.classList.remove('active'));
+        slides[i].classList.add('active');
+      }, 500);
+    }
+  });
+
+  document.querySelector('.deck').addEventListener('click', (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    if (x > r.width * 0.5) show(i + 1);
+    else show(i - 1);
+  });
+
+  setTimeout(() => { document.querySelector('.help').style.opacity = '0.15'; }, 5000);
+</script>
+</body>
+</html>
