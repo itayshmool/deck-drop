@@ -469,11 +469,11 @@
       </div>
       <div class="card" style="border-top:3px solid var(--green);">
         <h3 style="color:var(--dark); font-size:18px;">Data</h3>
-        <p>PostgreSQL (13 tables)<br>Redis (queues + cache)<br>AES-256-GCM encryption</p>
+        <p>PostgreSQL (14 tables)<br>Redis (queues + cache)<br>AES-256-GCM encryption</p>
       </div>
       <div class="card" style="border-top:3px solid var(--blood);">
         <h3 style="color:var(--dark); font-size:18px;">AI</h3>
-        <p>Multi-LLM (Claude, GPT, etc.)<br>3 agents (Wolf, Mirror, Fixer)<br>7-rule consensus engine</p>
+        <p>Multi-LLM (Claude, GPT, etc.)<br>4 agents (Wolf, Mirror, Fixer, Architect)<br>7-rule consensus engine</p>
       </div>
     </div>
   </div>
@@ -486,7 +486,7 @@
     <div class="pipeline">
       <div class="pipe-step">
         <div class="pipe-num">1</div>
-        <div><div class="pipe-label">Parse</div><div class="pipe-desc">XLSX / CSV via SheetJS &mdash; extract raw rows + headers</div></div>
+        <div><div class="pipe-label">Parse</div><div class="pipe-desc">XLSX / CSV via SheetJS, PDF via pdfjs-dist &mdash; extract raw rows + headers</div></div>
       </div>
       <div class="pipe-arrow">&darr;</div>
       <div class="pipe-step">
@@ -528,7 +528,7 @@
 <span class="dim">// Agents define WHAT to analyze, not WHICH model to use</span>
 
 <span class="gold">Agent Layer</span>
-  <span class="blue">WolfAgent</span>  &middot;  <span class="red">MirrorAgent</span>  &middot;  <span class="green">FixerAgent</span>
+  <span class="blue">WolfAgent</span>  &middot;  <span class="red">MirrorAgent</span>  &middot;  <span class="green">FixerAgent</span>  &middot;  <span class="gold">ArchitectAgent</span>
         &darr;              &darr;              &darr;
    <span class="fn">callLlm</span>()  &mdash;&mdash;&mdash;  <span class="gold">unified interface</span>  &mdash;&mdash;&mdash;  <span class="fn">withRetry</span>()
         &darr;
@@ -613,8 +613,49 @@
     </p>
   </div>
 
-  <!-- =========== SLIDE 7: ZERO-TRUST DATA FLOW =========== -->
+  <!-- =========== SLIDE 7: ANALYSIS CONFIGURATION =========== -->
   <div class="slide" data-slide="6">
+    <h3>Analysis Configuration</h3>
+    <h2>Tunable thresholds through the entire pipeline</h2>
+    <hr class="divider">
+    <pre>
+<span class="gold">AnalysisConfig</span> <span class="dim">(shared types + Zod validation)</span>
+    <span class="op">&darr;</span>
+    <span class="op">+&mdash;&rarr;</span> Stored in <span class="type">analyses.config</span> <span class="dim">(JSONB)</span>
+    <span class="op">&darr;</span>
+    <span class="op">+&mdash;&rarr;</span> <span class="blue">Pre-Processor</span>
+    <span class="op">&mid;</span>     <span class="op">+&mdash;&rarr;</span> <span class="green">focusDepartments</span> filter <span class="dim">(include only)</span>
+    <span class="op">&mid;</span>     <span class="op">+&mdash;&rarr;</span> <span class="red">skipDepartments</span> filter <span class="dim">(exclude)</span>
+    <span class="op">&mid;</span>     <span class="op">+&mdash;&rarr;</span> Benchmark overrides from thresholds
+    <span class="op">&darr;</span>
+    <span class="op">+&mdash;&rarr;</span> <span class="gold">Wolf Agent</span> system prompt
+    <span class="op">&mid;</span>     <span class="op">+&mdash;&rarr;</span> Custom targets (ratio, depth, span)
+    <span class="op">&mid;</span>     <span class="op">+&mdash;&rarr;</span> Focus areas (category filtering)
+    <span class="op">&mid;</span>     <span class="op">+&mdash;&rarr;</span> Focus / skip departments
+    <span class="op">&darr;</span>
+    <span class="op">+&mdash;&rarr;</span> Downstream agents inherit filtered data
+    </pre>
+    <table style="margin-top:12px;">
+      <thead>
+        <tr><th>Field</th><th>Type</th><th>Validation</th><th>Default</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>builderRatioTarget</td><td>number</td><td>1&ndash;50</td><td>8</td></tr>
+        <tr><td>maxDepthTarget</td><td>number</td><td>int, 1&ndash;20</td><td>3</td></tr>
+        <tr><td>spanOfControlMin/Max</td><td>number</td><td>1&ndash;30 / 1&ndash;50</td><td>6 / 8</td></tr>
+        <tr><td>minTeamSize</td><td>number</td><td>int, 1&ndash;20</td><td>3</td></tr>
+        <tr><td style="color:var(--gold); font-weight:600;">focusDepartments</td><td>string[]</td><td>max 50</td><td>[]</td></tr>
+        <tr><td style="color:var(--blood); font-weight:600;">skipDepartments</td><td>string[]</td><td>max 50</td><td>[]</td></tr>
+        <tr><td>focusAreas</td><td>FocusArea[]</td><td>max 10, enum</td><td>["all"]</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:15px; color:var(--muted); margin-top:8px;">
+      <strong style="color:var(--gold);">Focus</strong> narrows data to selected teams. <strong style="color:var(--blood);">Skip</strong> removes teams entirely. Mutually exclusive per department.
+    </p>
+  </div>
+
+  <!-- =========== SLIDE 8: ZERO-TRUST DATA FLOW =========== -->
+  <div class="slide" data-slide="7">
     <h3>Zero-Trust Data Flow</h3>
     <h2>What data goes where</h2>
     <hr class="divider">
@@ -646,8 +687,8 @@
     </div>
   </div>
 
-  <!-- =========== SLIDE 8: PII ENCRYPTION =========== -->
-  <div class="slide" data-slide="7">
+  <!-- =========== SLIDE 9: PII ENCRYPTION =========== -->
+  <div class="slide" data-slide="8">
     <h3>PII Encryption</h3>
     <h2>Defense in depth for sensitive data</h2>
     <hr class="divider">
@@ -677,8 +718,8 @@
     </pre>
   </div>
 
-  <!-- =========== SLIDE 9: MULTI-TENANT =========== -->
-  <div class="slide" data-slide="8">
+  <!-- =========== SLIDE 10: MULTI-TENANT =========== -->
+  <div class="slide" data-slide="9">
     <h3>Multi-Tenant Isolation</h3>
     <h2>Every query scoped to tenant</h2>
     <hr class="divider">
@@ -707,10 +748,10 @@
     </div>
   </div>
 
-  <!-- =========== SLIDE 10: DB SCHEMA =========== -->
-  <div class="slide" data-slide="9">
+  <!-- =========== SLIDE 11: DB SCHEMA =========== -->
+  <div class="slide" data-slide="10">
     <h3>Database Schema</h3>
-    <h2>13 tables &middot; Drizzle ORM &middot; PostgreSQL</h2>
+    <h2>14 tables &middot; Drizzle ORM &middot; PostgreSQL</h2>
     <hr class="divider">
     <div class="schema-tree">
 <span class="tbl">tenants</span> <span class="rel">&mdash;&mdash;&#9472;&#9488;</span>
@@ -721,7 +762,8 @@
          <span class="rel">&#9474;</span>              <span class="rel">&#9500;&#9472;&#9472;</span> <span class="tbl">context_documents</span>
          <span class="rel">&#9474;</span>              <span class="rel">&#9500;&#9472;&#9472;</span> <span class="tbl">analyses</span> <span class="rel">&mdash;&#9472;&#9488;</span>
          <span class="rel">&#9474;</span>              <span class="rel">&#9474;</span>            <span class="rel">&#9500;&#9472;&#9472;</span> <span class="tbl">insights</span>
-         <span class="rel">&#9474;</span>              <span class="rel">&#9474;</span>            <span class="rel">&#9492;&#9472;&#9472;</span> <span class="tbl">fix_plans</span>
+         <span class="rel">&#9474;</span>              <span class="rel">&#9474;</span>            <span class="rel">&#9500;&#9472;&#9472;</span> <span class="tbl">fix_plans</span>
+         <span class="rel">&#9474;</span>              <span class="rel">&#9474;</span>            <span class="rel">&#9492;&#9472;&#9472;</span> <span class="tbl" style="color:var(--gold);">restructure_plans</span>
          <span class="rel">&#9474;</span>              <span class="rel">&#9492;&#9472;&#9472;</span> <span class="tbl">analytics_cache</span>
          <span class="rel">&#9492;&#9472;&#9472;</span> <span class="tbl">audit_log</span>
     </div>
@@ -738,8 +780,8 @@
     </div>
   </div>
 
-  <!-- =========== SLIDE 11: QUEUE ARCHITECTURE =========== -->
-  <div class="slide" data-slide="10">
+  <!-- =========== SLIDE 12: QUEUE ARCHITECTURE =========== -->
+  <div class="slide" data-slide="11">
     <h3>Queue Architecture</h3>
     <h2>BullMQ + Redis &mdash; reliable job processing</h2>
     <hr class="divider">
@@ -758,6 +800,13 @@
         <p><strong>Retries:</strong> 2 attempts, 5s base backoff</p>
         <p style="margin-bottom:0;"><strong>Runs:</strong> Fixer agent</p>
       </div>
+      <div class="agent-box" style="border:2px solid var(--green); background:var(--green-bg);">
+        <div class="agent-title" style="color:var(--green);">restructure-pipeline</div>
+        <p><strong>Concurrency:</strong> 1 worker</p>
+        <p><strong>Rate limit:</strong> none (on-demand)</p>
+        <p><strong>Retries:</strong> 2 attempts, 5s base backoff</p>
+        <p style="margin-bottom:0;"><strong>Runs:</strong> Architect agent</p>
+      </div>
     </div>
     <pre style="margin-top:16px;">
 <span class="cm">// Job lifecycle</span>
@@ -769,8 +818,77 @@ API <span class="op">&rarr;</span> <span class="fn">db.insert</span>(status: <sp
     </pre>
   </div>
 
-  <!-- =========== SLIDE 12: MIDDLEWARE STACK =========== -->
-  <div class="slide" data-slide="11">
+  <!-- =========== SLIDE 13: ARCHITECT AGENT =========== -->
+  <div class="slide" data-slide="12">
+    <h3>Architect Agent</h3>
+    <h2>Department-level before/after org design</h2>
+    <hr class="divider">
+    <div class="sec-flow">
+      <div class="sec-step">
+        <div class="sec-icon" style="background:var(--green-bg); border:2px solid var(--green);">&#9989;</div>
+        <div><p><strong>Validated Insights</strong> &mdash; filter to structural categories (org-depth, span-of-control, dept-fragmentation, builder-ratio)</p></div>
+      </div>
+      <div class="sec-arrow">&darr;</div>
+      <div class="sec-step" style="border:2px solid var(--gold);">
+        <div class="sec-icon" style="background:var(--gold-bg); color:var(--dark);">&#129302;</div>
+        <div><p><strong>Architect Agent (LLM)</strong> &mdash; receives anonymized summary + top 10 insights, outputs <code class="mono" style="font-size:13px;">RestructurePlanData</code> JSON</p></div>
+      </div>
+      <div class="sec-arrow">&darr;</div>
+      <div class="sec-step">
+        <div class="sec-icon" style="background:var(--blue-bg); border:2px solid var(--blue);">&#128190;</div>
+        <div><p><strong>Store in DB</strong> &mdash; <code class="mono" style="font-size:13px;">restructure_plans</code> table (JSONB), linked to analysis</p></div>
+      </div>
+    </div>
+    <div class="card-row" style="margin-top:14px;">
+      <div class="card" style="border-left:3px solid var(--gold); padding:16px;">
+        <h3 style="color:var(--dark); font-size:16px;">Output Schema</h3>
+        <p style="margin:0; font-size:15px;"><code class="mono" style="font-size:12px;">currentStructure</code> &middot; <code class="mono" style="font-size:12px;">proposedStructure</code> &middot; <code class="mono" style="font-size:12px;">operations[]</code> &middot; <code class="mono" style="font-size:12px;">metrics</code> &middot; <code class="mono" style="font-size:12px;">summary</code></p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--blood); padding:16px;">
+        <h3 style="color:var(--dark); font-size:16px;">Operations</h3>
+        <p style="margin:0; font-size:15px;">merge &middot; flatten &middot; eliminate &middot; split &middot; redistribute</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--green); padding:16px;">
+        <h3 style="color:var(--dark); font-size:16px;">Key Rule</h3>
+        <p style="margin:0; font-size:15px;">"Positions eliminated" = manager roles converted to IC, not headcount reduction</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========== SLIDE 14: PDF EXPORT =========== -->
+  <div class="slide" data-slide="13">
+    <h3>PDF Export Architecture</h3>
+    <h2>Three generators, shared layout engine</h2>
+    <hr class="divider">
+    <pre>
+<span class="gold">pdf-generator.ts</span>
+    <span class="op">&darr;</span>
+    <span class="op">+&mdash;&rarr;</span> <span class="fn">generatePDF</span>()                 <span class="dim">&mdash; analysis export</span>
+    <span class="op">+&mdash;&rarr;</span> <span class="fn">generateFixPlanPDF</span>()          <span class="dim">&mdash; fix plan export</span>
+    <span class="op">+&mdash;&rarr;</span> <span class="fn">generateRestructurePlanPDF</span>()  <span class="dim">&mdash; restructure export</span>
+    <span class="op">&darr;</span>
+    <span class="op">+&mdash;&rarr;</span> Shared helpers:
+          <span class="op">+&mdash;&mdash;</span> <span class="fn">checkPageBreak</span>()  <span class="dim">&mdash; auto page breaks</span>
+          <span class="op">+&mdash;&mdash;</span> <span class="fn">tableRow</span>()        <span class="dim">&mdash; absolute-positioned column layout</span>
+    </pre>
+    <div class="card-row" style="margin-top:14px;">
+      <div class="card" style="border-left:3px solid var(--gold); padding:16px;">
+        <h3 style="color:var(--dark); font-size:16px;">PDFKit</h3>
+        <p style="margin:0; font-size:15px;">Absolute x-positioned cells via <code class="mono" style="font-size:12px;">tableRow()</code> helper. ASCII-safe characters only.</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--blue); padding:16px;">
+        <h3 style="color:var(--dark); font-size:16px;">Scope-Aware Filenames</h3>
+        <p style="margin:0; font-size:15px;"><code class="mono" style="font-size:12px;">wolf-restructure-dept-engineering.pdf</code></p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--green); padding:16px;">
+        <h3 style="color:var(--dark); font-size:16px;">Streaming</h3>
+        <p style="margin:0; font-size:15px;">Hono <code class="mono" style="font-size:12px;">stream()</code> &rarr; Buffer.concat &rarr; write response</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========== SLIDE 15: MIDDLEWARE STACK =========== -->
+  <div class="slide" data-slide="14">
     <h3>API Design</h3>
     <h2>Hono middleware stack</h2>
     <hr class="divider">
@@ -836,14 +954,48 @@ API <span class="op">&rarr;</span> <span class="fn">db.insert</span>(status: <sp
           <strong>Zod validation</strong> on all mutation endpoints &mdash; reject bad input before it reaches business logic.
         </p>
         <p style="font-size:17px;">
-          <strong>File upload:</strong> 50MB limit, xlsx/csv only, validated at middleware level.
+          <strong>File upload:</strong> 50MB limit, xlsx/csv/pdf, validated at middleware level.
         </p>
       </div>
     </div>
   </div>
 
-  <!-- =========== SLIDE 13: FRONTEND =========== -->
-  <div class="slide" data-slide="12">
+  <!-- =========== SLIDE 16: ORG SIDEBAR ARCHITECTURE (NEW) =========== -->
+  <div class="slide" data-slide="15">
+    <h3>Org Sidebar Architecture</h3>
+    <h2>Split view: real employees alongside insights</h2>
+    <hr class="divider">
+    <pre>
+<span class="cm">// Insights page layout</span>
+<span class="gold">InsightsPage</span>
+  <span class="op">&darr;</span>
+  <span class="op">+&mdash;&rarr;</span> <span class="blue">OrgSidebar</span> <span class="dim">(left, 320px, scrollable)</span>
+  <span class="op">&mid;</span>     <span class="op">+&mdash;&rarr;</span> <span class="fn">GET</span> <span class="str">/analytics/:id/org-tree/department/:dept</span>
+  <span class="op">&mid;</span>     <span class="op">+&mdash;&rarr;</span> Client-side tree build <span class="dim">(flat &rarr; parent-child via managerId)</span>
+  <span class="op">&mid;</span>     <span class="op">+&mdash;&rarr;</span> Compact indented list <span class="dim">(name, title, depth, manager highlight)</span>
+  <span class="op">&darr;</span>
+  <span class="op">+&mdash;&rarr;</span> <span class="gold">InsightCards</span> <span class="dim">(right, flex-1)</span>
+        <span class="op">+&mdash;&rarr;</span> Entity matching <span class="dim">(department names from insight text)</span>
+        <span class="op">+&mdash;&rarr;</span> Scope params <span class="dim">(from focus analysis navigation)</span>
+    </pre>
+    <div class="card-row" style="margin-top:14px;">
+      <div class="card" style="border-left:3px solid var(--gold); padding:16px;">
+        <h3 style="color:var(--dark); font-size:16px;">Entity Matching</h3>
+        <p style="margin:0; font-size:15px;">Client-side heuristic: scan insight text for department names, match against known departments. Longest match wins.</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--blue); padding:16px;">
+        <h3 style="color:var(--dark); font-size:16px;">Scope Propagation</h3>
+        <p style="margin:0; font-size:15px;">Focus analysis passes <code class="mono" style="font-size:12px;">scopeType</code> + <code class="mono" style="font-size:12px;">scopeName</code> + <code class="mono" style="font-size:12px;">scopeDept</code> via URL params. Auto-populates sidebar.</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--green); padding:16px;">
+        <h3 style="color:var(--dark); font-size:16px;">Scrollable Tree</h3>
+        <p style="margin:0; font-size:15px;">Flex overflow constraints: <code class="mono" style="font-size:12px;">min-h-0</code> + <code class="mono" style="font-size:12px;">overflow-y-auto</code>. 500-row API limit per department.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========== SLIDE 17: FRONTEND =========== -->
+  <div class="slide" data-slide="16">
     <h3>Frontend Architecture</h3>
     <h2>Next.js 14 App Router</h2>
     <hr class="divider">
@@ -851,7 +1003,7 @@ API <span class="op">&rarr;</span> <span class="fn">db.insert</span>(status: <sp
       <div class="card" style="border-top:3px solid var(--blue); padding:18px;">
         <h3 style="color:var(--dark); font-size:18px;">Routing</h3>
         <ul>
-          <li>Chapter-based navigation (I&ndash;IX)</li>
+          <li>Chapter-based navigation (I&ndash;X)</li>
           <li>Mobile-responsive hamburger drawer</li>
           <li>Dynamic <code class="mono" style="font-size:12px;">[datasetId]</code> segments</li>
         </ul>
@@ -884,21 +1036,24 @@ app/
       org-chart/page.tsx      <span class="cm">// Ch.III THE BODIES</span>
       data/page.tsx           <span class="cm">// Ch.IV  THE EVIDENCE</span>
       analyze/page.tsx        <span class="cm">// Ch.V   THE HIT</span>
-      insights/page.tsx       <span class="cm">// Ch.VI  THE VERDICT</span>
+      insights/page.tsx       <span class="cm">// Ch.VI  THE VERDICT (+ org sidebar)</span>
       export/page.tsx         <span class="cm">// Ch.VII THE CLEANUP</span>
       focus/page.tsx          <span class="cm">// Ch.VIII THE INTERROGATION</span>
       fix/page.tsx            <span class="cm">// Ch.IX  THE FIXING</span>
+      restructure/page.tsx    <span class="cm">// Ch.X   THE RESTRUCTURE</span>
     </pre>
   </div>
 
-  <!-- =========== SLIDE 14: CLOSING =========== -->
-  <div class="slide closing-slide" data-slide="13">
+  <!-- =========== SLIDE 18: CLOSING =========== -->
+  <div class="slide closing-slide" data-slide="17">
     <h1>THE WOLF</h1>
     <div class="subtitle">Technical Architecture</div>
     <div class="tech-tags">
       <span>Provider-agnostic agents</span> &middot; AES-256-GCM encryption &middot; <span>Anonymized analysis</span><br>
       Deterministic consensus &middot; <span>PostgreSQL RLS</span> &middot; BullMQ orchestration<br>
-      Multi-tenant isolation &middot; <span>Zero-trust data flow</span> &middot; Immutable audit trail
+      <span>Configurable analysis</span> &middot; Department-level restructuring &middot; <span>PDF export pipeline</span><br>
+      <span>Org sidebar split view</span> &middot; Multi-tenant isolation &middot; <span>Zero-trust data flow</span><br>
+      PDF upload ingestion &middot; <span>Scope-aware navigation</span> &middot; Immutable audit trail
     </div>
   </div>
 
