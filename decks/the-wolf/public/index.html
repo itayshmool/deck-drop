@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Wolf — Product Deck</title>
+<title>The Wolf — Product Deck v2</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -495,6 +495,17 @@
     color: #555;
   }
 
+  /* ---- Operations Grid (v2) ---- */
+  .ops-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .ops-grid .card { padding: 20px; }
+  .ops-grid .card h3 { font-size: 20px; margin-bottom: 6px; }
+  .ops-grid .card p { font-size: 17px; margin: 0; }
+
   /* ---- Responsive ---- */
   @media (max-width: 1024px) {
     .slide { padding: 40px 48px; }
@@ -597,6 +608,9 @@
     /* Code/pre */
     pre { font-size: 13px; padding: 16px 18px; line-height: 1.6; }
 
+    /* Ops grid single-col */
+    .ops-grid { grid-template-columns: 1fr; gap: 10px; }
+
     /* Nav */
     .nav { bottom: 16px; right: 16px; }
     .nav button { width: 38px; height: 38px; font-size: 16px; }
@@ -621,14 +635,14 @@
 <body>
 <div class="deck" id="deck">
 
-  <!-- =============== SLIDE 1: TITLE =============== -->
+  <!-- =============== SLIDE 0: TITLE =============== -->
   <div class="slide title-slide active" data-slide="0">
     <h1>THE WOLF</h1>
     <div class="tagline">"I solve problems."</div>
     <div class="subtitle">Transform your organization for the AI era</div>
   </div>
 
-  <!-- =============== SLIDE 2: THE PROBLEM =============== -->
+  <!-- =============== SLIDE 1: THE PROBLEM =============== -->
   <div class="slide" data-slide="1">
     <h3>The Problem</h3>
     <h2>Restructuring decisions are made in the dark</h2>
@@ -641,7 +655,7 @@
     </ul>
   </div>
 
-  <!-- =============== SLIDE 3: THE COST =============== -->
+  <!-- =============== SLIDE 2: THE COST =============== -->
   <div class="slide" data-slide="2">
     <h3>The Real Cost</h3>
     <h2>When organizations get it wrong</h2>
@@ -665,20 +679,20 @@
     </blockquote>
   </div>
 
-  <!-- =============== SLIDE 4: WHAT IF =============== -->
+  <!-- =============== SLIDE 3: WHAT IF =============== -->
   <div class="slide centered-slide" data-slide="3">
     <h3>What If</h3>
     <h2 class="whatif-heading">What if a machine could see<br>the whole picture?</h2>
     <hr class="divider" style="margin:24px auto;">
     <p class="whatif-sub">
-      Upload your org data &rarr; Get validated, adversarial insights &rarr; Act on a phased plan
+      Upload your org data &rarr; Get validated insights &rarr; Act on a phased plan &rarr; See the restructured org
     </p>
     <p class="whatif-cta">
       Three minutes, not three months.
     </p>
   </div>
 
-  <!-- =============== SLIDE 5: THE THESIS =============== -->
+  <!-- =============== SLIDE 4: THE THESIS =============== -->
   <div class="slide" data-slide="4">
     <h3>The Thesis</h3>
     <h2>AI changes what an org should look like</h2>
@@ -708,7 +722,7 @@
     </div>
   </div>
 
-  <!-- =============== SLIDE 6: THREE DATA LAYERS =============== -->
+  <!-- =============== SLIDE 5: THREE DATA LAYERS =============== -->
   <div class="slide" data-slide="5">
     <h3>How We Prove It</h3>
     <h2>Context changes everything</h2>
@@ -726,7 +740,7 @@
       </div>
       <div class="card green-border">
         <h3 style="color:var(--dark);">Layer 3 — Context</h3>
-        <p>Strategy docs, culture notes, board decisions, transformation plans</p>
+        <p>Strategy docs, culture notes, board decisions, transformation plans (PDF, XLSX, CSV, TXT)</p>
         <p class="mono" style="font-size:15px; color:var(--smoke);">"We're pivoting to AI-first in Q3"</p>
       </div>
     </div>
@@ -735,12 +749,12 @@
     </p>
   </div>
 
-  <!-- =============== SLIDE 7: LAYER 1 — ORG CHART =============== -->
+  <!-- =============== SLIDE 6: LAYER 1 — ORG CHART =============== -->
   <div class="slide" data-slide="6">
     <h3>Layer 1</h3>
     <h2>The Org Chart</h2>
     <hr class="divider">
-    <p>Upload XLSX/CSV &rarr; Auto-detect columns &rarr; Resolve managers &rarr; Build the tree</p>
+    <p>Upload XLSX/CSV/PDF &rarr; Auto-detect columns &rarr; Resolve managers &rarr; Build the tree</p>
     <pre>&#9917; Sir Alex Ferguson  <span style="color:var(--smoke)">(CEO)</span>
   &#9500;&#9472;&#9472; Pep Guardiola  <span style="color:var(--smoke)">(VP Engineering &middot; 340 reports)</span>
   &#9474;   &#9500;&#9472;&#9472; Zinedine Zidane  <span style="color:var(--smoke)">(Director, Platform)</span>
@@ -753,7 +767,7 @@
     </p>
   </div>
 
-  <!-- =============== SLIDE 8: LAYER 2 — PERFORMANCE =============== -->
+  <!-- =============== SLIDE 7: LAYER 2 — PERFORMANCE =============== -->
   <div class="slide" data-slide="7">
     <h3>Layer 2</h3>
     <h2>Performance Overlay</h2>
@@ -775,7 +789,7 @@
     </blockquote>
   </div>
 
-  <!-- =============== SLIDE 9: LAYER 3 — CONTEXT =============== -->
+  <!-- =============== SLIDE 8: LAYER 3 — CONTEXT =============== -->
   <div class="slide" data-slide="8">
     <h3>Layer 3</h3>
     <h2>Strategic Context</h2>
@@ -796,8 +810,43 @@
     </div>
   </div>
 
-  <!-- =============== SLIDE 10: DUAL AGENT =============== -->
+  <!-- =============== SLIDE 9: RUN CONFIGURATOR (NEW) =============== -->
   <div class="slide" data-slide="9">
+    <h3>Tunable Analysis</h3>
+    <h2>Configure every threshold</h2>
+    <hr class="divider">
+    <table>
+      <thead>
+        <tr><th>Setting</th><th>Default</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Builder:Manager Ratio</strong></td><td>8:1</td></tr>
+        <tr><td><strong>Max Org Depth</strong></td><td>3</td></tr>
+        <tr><td><strong>Span of Control Min</strong></td><td>6</td></tr>
+        <tr><td><strong>Span of Control Max</strong></td><td>8</td></tr>
+        <tr><td><strong>Min Team Size</strong></td><td>3</td></tr>
+        <tr><td><strong>Focus Areas</strong></td><td>All</td></tr>
+        <tr><td><strong>Focus Departments</strong> <span style="color:var(--gold); font-weight:700;">NEW</span></td><td>All</td></tr>
+        <tr><td><strong>Skip Departments</strong></td><td>None</td></tr>
+      </tbody>
+    </table>
+    <div class="card-row">
+      <div class="card gold-border">
+        <h3 style="color:var(--gold);">Focus Departments</h3>
+        <p>Select specific teams to zoom into. The Wolf narrows its data and insights to just those departments.</p>
+      </div>
+      <div class="card blood-border">
+        <h3 style="color:var(--blood);">Skip Departments</h3>
+        <p>Exclude departments entirely. The Wolf won't produce insights about skipped departments.</p>
+      </div>
+    </div>
+    <p style="font-size:17px; color:var(--text-secondary); text-align:center;">
+      Focus and skip are mutually exclusive per department.
+    </p>
+  </div>
+
+  <!-- =============== SLIDE 10: DUAL AGENT =============== -->
+  <div class="slide" data-slide="10">
     <h3>Cross-Validated by Competing LLMs</h3>
     <h2>Two AI agents. One tries to prove it. One tries to break it.</h2>
     <hr class="divider">
@@ -841,7 +890,7 @@
   </div>
 
   <!-- =============== SLIDE 11: SECURITY =============== -->
-  <div class="slide" data-slide="10">
+  <div class="slide" data-slide="11">
     <h3>Zero-Trust Architecture</h3>
     <h2>Your data never leaves</h2>
     <hr class="divider">
@@ -877,7 +926,7 @@
   </div>
 
   <!-- =============== SLIDE 12: FOCUS / INTERROGATION =============== -->
-  <div class="slide" data-slide="11">
+  <div class="slide" data-slide="12">
     <h3>The Interrogation</h3>
     <h2>Drill into any manager or department</h2>
     <hr class="divider">
@@ -914,7 +963,7 @@
   </div>
 
   <!-- =============== SLIDE 13: THE FIXING =============== -->
-  <div class="slide" data-slide="12">
+  <div class="slide" data-slide="13">
     <h3>The Fixing</h3>
     <h2>From insight to action</h2>
     <hr class="divider">
@@ -950,8 +999,106 @@
     </p>
   </div>
 
-  <!-- =============== SLIDE 14: OUTPUT =============== -->
-  <div class="slide" data-slide="13">
+  <!-- =============== SLIDE 14: THE RESTRUCTURE (NEW) =============== -->
+  <div class="slide" data-slide="14">
+    <h3>The Restructure</h3>
+    <h2>See the new org before you commit</h2>
+    <hr class="divider">
+    <table>
+      <thead>
+        <tr><th>Metric</th><th>Before</th><th>After</th><th>Delta</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Total Headcount</strong></td>
+          <td class="before">2,400</td>
+          <td class="after">2,180</td>
+          <td>-220</td>
+        </tr>
+        <tr>
+          <td><strong>Managers</strong></td>
+          <td class="before">380</td>
+          <td class="after">245</td>
+          <td>-135</td>
+        </tr>
+        <tr>
+          <td><strong>Builder Ratio</strong></td>
+          <td class="before">5.3:1</td>
+          <td class="after">7.9:1</td>
+          <td>+49%</td>
+        </tr>
+        <tr>
+          <td><strong>Max Depth</strong></td>
+          <td class="before">7</td>
+          <td class="after">4</td>
+          <td>-3 layers</td>
+        </tr>
+        <tr>
+          <td><strong>Departments</strong></td>
+          <td class="before">12</td>
+          <td class="after">8</td>
+          <td>4 merged</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="ops-grid">
+      <div class="card gold-border">
+        <h3 style="color:var(--gold);">Merge</h3>
+        <p>Platform + Infra &rarr; unified Engineering Platform</p>
+      </div>
+      <div class="card blood-border">
+        <h3 style="color:var(--blood);">Flatten</h3>
+        <p>Remove 3 management layers in Growth</p>
+      </div>
+      <div class="card" style="border-left:4px solid var(--dark);">
+        <h3 style="color:var(--dark);">Eliminate</h3>
+        <p>Duplicate APAC liaison offices</p>
+      </div>
+      <div class="card green-border">
+        <h3 style="color:#2d8a4e;">Redistribute</h3>
+        <p>40 engineers from Growth &rarr; Mobile</p>
+      </div>
+    </div>
+    <p style="font-size:17px; color:var(--text-secondary); text-align:center;">
+      Toggle between BEFORE and AFTER org trees. See exactly what changes and why.
+    </p>
+  </div>
+
+  <!-- =============== SLIDE 15: ORG SIDEBAR / SPLIT VIEW (NEW) =============== -->
+  <div class="slide" data-slide="15">
+    <h3>The Split View</h3>
+    <h2>See the people behind every insight</h2>
+    <hr class="divider">
+    <p style="font-size:22px; margin-bottom:20px;">
+      Every insight now shows the <strong style="color:var(--gold);">real org tree</strong> alongside the finding &mdash; see who's affected before you act.
+    </p>
+    <div class="card-row">
+      <div class="card" style="border-left:4px solid var(--gold); flex:0.8;">
+        <h3 style="color:var(--gold); font-size:20px;">Org Sidebar</h3>
+        <ul>
+          <li>Department employees in a compact tree</li>
+          <li>Manager names highlighted in gold</li>
+          <li>Indented hierarchy showing reporting lines</li>
+          <li>Direct report counts for each manager</li>
+        </ul>
+      </div>
+      <div class="card" style="border-left:4px solid var(--dark); flex:1.2;">
+        <h3 style="color:var(--dark); font-size:20px;">How It Works</h3>
+        <ul>
+          <li><strong>Full-org analysis:</strong> expand an insight &rarr; sidebar shows the affected department</li>
+          <li><strong>Focus analysis:</strong> sidebar auto-populates with the scoped department or manager</li>
+          <li>Title updates: <strong>"THE VERDICT: ENGINEERING"</strong></li>
+          <li>Scrollable, collapsible &mdash; toggle with one click</li>
+        </ul>
+      </div>
+    </div>
+    <blockquote>
+      Insights say "flatten this department." The sidebar shows you the 340 people in it &mdash; names, titles, and reporting lines. Context changes decisions.
+    </blockquote>
+  </div>
+
+  <!-- =============== SLIDE 16: OUTPUT =============== -->
+  <div class="slide" data-slide="16">
     <h3>What You Get</h3>
     <h2>The complete toolkit</h2>
     <hr class="divider">
@@ -962,6 +1109,7 @@
           <li>Benchmarks vs industry standards</li>
           <li>Department & guild breakdowns</li>
           <li>Virtualized org tree (50K+ scale)</li>
+          <li>Split view: org tree + insights side-by-side</li>
         </ul>
       </div>
       <div class="card blood-border">
@@ -977,14 +1125,15 @@
         <ul>
           <li>Phased fix plan with ownership</li>
           <li>PDF exports for board presentations</li>
+          <li>Before/after restructure visualization</li>
           <li>JSON API for HR system integration</li>
         </ul>
       </div>
     </div>
   </div>
 
-  <!-- =============== SLIDE 15: BEFORE / AFTER =============== -->
-  <div class="slide" data-slide="14">
+  <!-- =============== SLIDE 17: BEFORE / AFTER =============== -->
+  <div class="slide" data-slide="17">
     <h3>The Difference</h3>
     <h2>Before &amp; After</h2>
     <hr class="divider">
@@ -1014,9 +1163,19 @@
           <td class="after">Any manager, any department</td>
         </tr>
         <tr>
+          <td><strong>Configuration</strong></td>
+          <td class="before">One-size-fits-all</td>
+          <td class="after">Tunable thresholds + focus/skip departments</td>
+        </tr>
+        <tr>
           <td><strong>Security</strong></td>
           <td class="before">Emailed spreadsheets with PII</td>
           <td class="after">AES-256-GCM encryption, audit trail</td>
+        </tr>
+        <tr>
+          <td><strong>Restructure</strong></td>
+          <td class="before">PowerPoint guesswork</td>
+          <td class="after">Data-driven before/after with impact metrics</td>
         </tr>
         <tr>
           <td><strong>Output</strong></td>
@@ -1027,12 +1186,12 @@
     </table>
   </div>
 
-  <!-- =============== SLIDE 16: CLOSING =============== -->
-  <div class="slide closing-slide" data-slide="15">
+  <!-- =============== SLIDE 18: CLOSING =============== -->
+  <div class="slide closing-slide" data-slide="18">
     <h1>THE WOLF</h1>
     <div class="tagline">"You got a problem? I solve problems."</div>
     <div class="flow">
-      <span>Upload</span> &rarr; Analyze &rarr; <span>Validate</span> &rarr; Fix
+      <span>Upload</span> &rarr; Analyze &rarr; <span>Validate</span> &rarr; See the Org &rarr; <span>Fix</span> &rarr; Restructure
     </div>
     <div class="footer-note">
       Transform your organization for the AI era.<br>
