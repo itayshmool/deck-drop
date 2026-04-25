@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Wolf — User Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --gold: #d4a847;
+    --gold-light: #f5e6b8;
+    --gold-bg: #faf6eb;
+    --blood: #c41e3a;
+    --blood-light: #fdf2f4;
+    --dark: #1a1a1a;
+    --text: #2d2d2d;
+    --text-secondary: #6b6b6b;
+    --bg: #ffffff;
+    --bg-warm: #fafaf8;
+    --border: #e8e4de;
+    --smoke: #8a8a7a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    font-family: 'Crimson Text', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* ---- Slide Container ---- */
+  .deck {
+    width: 100%; height: 100%;
+    position: relative;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 40px 60px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.45s ease;
+    overflow-y: auto;
+  }
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ---- Typography ---- */
+  h1, h2, h3, .chapter-label, .step-number {
+    font-family: 'Bebas Neue', 'Arial Black', sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .slide h2 { font-size: 44px; line-height: 1.1; color: var(--dark); margin-bottom: 6px; }
+  .slide h3 { font-size: 28px; color: var(--gold); margin-bottom: 12px; letter-spacing: 0.06em; }
+
+  .slide p, .slide li {
+    font-size: 19px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .slide p { margin-bottom: 10px; }
+
+  .slide ul { list-style: none; padding: 0; }
+  .slide ul li {
+    padding: 5px 0 5px 24px;
+    position: relative;
+  }
+  .slide ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 14px;
+    width: 8px; height: 8px;
+    background: var(--gold);
+    border-radius: 2px;
+    transform: rotate(45deg);
+  }
+
+  .gold { color: var(--gold); }
+  .blood { color: var(--blood); }
+  .bold { font-weight: 700; }
+  .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.9em; }
+
+  /* ---- Title Slide ---- */
+  .title-slide {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 60px;
+  }
+  .title-slide h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 100px;
+    letter-spacing: 0.08em;
+    color: var(--dark);
+    line-height: 1.05;
+  }
+  .title-slide .tagline {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    font-size: 28px;
+    color: var(--smoke);
+    margin-top: 12px;
+  }
+  .title-slide .subtitle {
+    font-size: 22px;
+    color: var(--text-secondary);
+    margin-top: 20px;
+    font-style: italic;
+  }
+  .title-slide .guide-badge {
+    display: inline-block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 0.1em;
+    color: var(--gold);
+    border: 2px solid var(--gold);
+    padding: 8px 24px;
+    border-radius: 4px;
+    margin-top: 32px;
+  }
+
+  /* ---- Closing Slide ---- */
+  .closing-slide {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: var(--dark);
+  }
+  .closing-slide h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 80px;
+    color: var(--gold);
+    letter-spacing: 0.08em;
+  }
+  .closing-slide .tagline { color: #ccc; font-size: 26px; font-style: italic; }
+  .closing-slide .flow {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: #fff;
+    letter-spacing: 0.1em;
+    margin-top: 36px;
+  }
+  .closing-slide .flow span { color: var(--gold); }
+  .closing-slide .footer-note {
+    font-size: 18px;
+    color: var(--smoke);
+    margin-top: 28px;
+    font-style: italic;
+  }
+
+  /* ---- Step Slides ---- */
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .step-number {
+    flex-shrink: 0;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--dark);
+    color: var(--gold);
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .step-chapter {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.1em;
+    color: var(--smoke);
+    text-transform: uppercase;
+  }
+
+  /* ---- Screenshot ---- */
+  .screenshot-wrap {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 12px 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: #f5f4f0;
+  }
+  .screenshot-wrap img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* ---- Callouts below screenshot ---- */
+  .callouts {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    flex-shrink: 0;
+  }
+  .callout {
+    flex: 1;
+    padding: 14px 18px;
+    background: var(--bg-warm);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+  }
+  .callout.blood-accent { border-left-color: var(--blood); }
+  .callout.green-accent { border-left-color: #2d8a4e; }
+  .callout strong {
+    display: block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    color: var(--dark);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .callout p { font-size: 15px; margin: 0; color: var(--text-secondary); line-height: 1.4; }
+
+  /* ---- Divider ---- */
+  .divider {
+    width: 60px;
+    height: 3px;
+    background: var(--gold);
+    border: none;
+    margin: 10px 0;
+    border-radius: 2px;
+  }
+
+  /* ---- Nav ---- */
+  .nav {
+    position: fixed;
+    bottom: 28px;
+    right: 36px;
+    display: flex;
+    gap: 10px;
+    z-index: 100;
+  }
+  .nav button {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-family: system-ui;
+  }
+  .nav button:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  .progress {
+    position: fixed;
+    bottom: 0; left: 0;
+    height: 3px;
+    background: var(--gold);
+    transition: width 0.35s ease;
+    z-index: 100;
+  }
+
+  .slide-counter {
+    position: fixed;
+    bottom: 36px;
+    left: 36px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--smoke);
+    z-index: 100;
+  }
+
+  /* ---- Slide Menu ---- */
+  .menu-btn {
+    position: fixed;
+    top: 20px;
+    right: 36px;
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    z-index: 200;
+    transition: all 0.2s;
+  }
+  .menu-btn:hover { border-color: var(--gold); }
+  .menu-btn span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: var(--text);
+    border-radius: 1px;
+    transition: background 0.2s;
+  }
+  .menu-btn:hover span { background: var(--gold); }
+
+  .menu-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 150;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .menu-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .menu-panel {
+    position: fixed;
+    top: 0;
+    right: -340px;
+    width: 320px;
+    height: 100%;
+    background: var(--bg);
+    border-left: 1px solid var(--border);
+    z-index: 160;
+    padding: 60px 24px 24px;
+    overflow-y: auto;
+    transition: right 0.35s ease;
+  }
+  .menu-panel.open { right: 0; }
+  .menu-panel h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--gold);
+    letter-spacing: 0.08em;
+    margin-bottom: 16px;
+  }
+  .menu-panel .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-family: 'Crimson Text', serif;
+    font-size: 17px;
+    color: var(--text);
+  }
+  .menu-panel .menu-item:hover { background: var(--gold-bg); }
+  .menu-panel .menu-item.active { background: var(--gold-bg); font-weight: 700; }
+  .menu-panel .menu-item .item-num {
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--dark);
+    color: var(--gold);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 1024px) {
+    .slide { padding: 32px 40px; }
+    .slide h2 { font-size: 36px; }
+    .slide h3 { font-size: 24px; }
+    .slide p, .slide li { font-size: 17px; }
+    .title-slide h1 { font-size: 80px; }
+    .title-slide .tagline { font-size: 24px; }
+    .closing-slide h1 { font-size: 64px; }
+    .step-number { width: 38px; height: 38px; font-size: 19px; }
+  }
+
+  @media (max-width: 768px) {
+    .slide {
+      padding: 24px 20px;
+      padding-top: 60px;
+    }
+    .slide h2 { font-size: 28px; }
+    .slide h3 { font-size: 20px; margin-bottom: 8px; }
+    .slide p, .slide li { font-size: 16px; line-height: 1.5; }
+    .slide p { margin-bottom: 8px; }
+    .slide ul li { padding: 4px 0 4px 20px; }
+    .slide ul li::before { top: 12px; width: 7px; height: 7px; }
+
+    .title-slide { padding: 40px 24px; }
+    .title-slide h1 { font-size: 56px; }
+    .title-slide .tagline { font-size: 20px; }
+    .title-slide .subtitle { font-size: 17px; }
+    .title-slide .guide-badge { font-size: 16px; padding: 6px 18px; }
+
+    .closing-slide { padding: 40px 24px; }
+    .closing-slide h1 { font-size: 48px; }
+    .closing-slide .tagline { font-size: 20px; }
+    .closing-slide .flow { font-size: 20px; margin-top: 24px; }
+    .closing-slide .footer-note { font-size: 15px; }
+
+    .step-header { gap: 10px; margin-bottom: 8px; }
+    .step-number { width: 32px; height: 32px; font-size: 16px; }
+    .step-chapter { font-size: 13px; }
+
+    .screenshot-wrap { margin: 8px 0; border-radius: 8px; }
+
+    .callouts { flex-direction: column; gap: 8px; margin-top: 8px; }
+    .callout { padding: 10px 14px; }
+    .callout strong { font-size: 13px; }
+    .callout p { font-size: 14px; }
+
+    .nav { bottom: 16px; right: 16px; }
+    .nav button { width: 38px; height: 38px; font-size: 16px; }
+    .slide-counter { bottom: 22px; left: 16px; font-size: 12px; }
+    .menu-btn { top: 14px; right: 16px; width: 36px; height: 36px; }
+    .menu-panel { width: 280px; right: -300px; padding: 50px 18px 18px; }
+  }
+
+  @media (max-width: 420px) {
+    .slide { padding: 18px 14px; padding-top: 52px; }
+    .slide h2 { font-size: 24px; }
+    .title-slide h1 { font-size: 44px; }
+    .closing-slide h1 { font-size: 40px; }
+    .closing-slide .flow { font-size: 17px; }
+    .callout { padding: 8px 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- =============== SLIDE 0: TITLE =============== -->
+  <div class="slide title-slide active" data-slide="0">
+    <h1>THE WOLF</h1>
+    <div class="tagline">"You got a problem? I solve problems."</div>
+    <div class="subtitle">A step-by-step guide using the Payments department as an example</div>
+    <div class="guide-badge">User Guide</div>
+  </div>
+
+  <!-- =============== SLIDE 1: SELECT FOCUS =============== -->
+  <div class="slide" data-slide="1">
+    <div class="step-header">
+      <div class="step-number">1</div>
+      <div>
+        <div class="step-chapter">Chapter V — The Interrogation</div>
+        <h2>Select Your Focus — Department or Manager</h2>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="screenshot-wrap">
+      <img src="user-guide-assets/00-select-focus.png" alt="Select Focus — pick department or manager">
+    </div>
+    <div class="callouts">
+      <div class="callout">
+        <strong>Department or Manager</strong>
+        <p>Toggle between <span class="bold">Department</span> and <span class="bold">Manager</span> tabs to choose your analysis scope.</p>
+      </div>
+      <div class="callout">
+        <strong>Department Picker</strong>
+        <p>Each department shows headcount and builder ratio. Here: <span class="bold">Payments — 157 people, 3.9:1 ratio</span>.</p>
+      </div>
+      <div class="callout blood-accent">
+        <strong>Interrogate</strong>
+        <p>Hit the red <span class="bold">Interrogate</span> button to launch the Wolf + Mirror dual-agent analysis on the selected scope.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== SLIDE 2: THE INTERROGATION =============== -->
+  <div class="slide" data-slide="2">
+    <div class="step-header">
+      <div class="step-number">2</div>
+      <div>
+        <div class="step-chapter">Chapter V — The Interrogation</div>
+        <h2>Analysis Complete</h2>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="screenshot-wrap">
+      <img src="user-guide-assets/01-interrogation.png" alt="The Interrogation — Focus on Payments department">
+    </div>
+    <div class="callouts">
+      <div class="callout">
+        <strong>Results Ready</strong>
+        <p>Once complete, you get <span class="bold">View Insights</span>, <span class="bold">Download PDF</span>, <span class="bold">Regenerate</span>, and <span class="bold">Archive</span> actions.</p>
+      </div>
+      <div class="callout">
+        <strong>Past Interrogations</strong>
+        <p>Previous analyses are listed below with their scope, date, and insight count for quick access.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== SLIDE 3: THE VERDICT — Overview =============== -->
+  <div class="slide" data-slide="3">
+    <div class="step-header">
+      <div class="step-number">3</div>
+      <div>
+        <div class="step-chapter">Chapter VI — The Verdict</div>
+        <h2>Review Insights + Org Sidebar</h2>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="screenshot-wrap">
+      <img src="user-guide-assets/02-verdict-overview.png" alt="The Verdict — Payments insights with org sidebar">
+    </div>
+    <div class="callouts">
+      <div class="callout">
+        <strong>Org Sidebar</strong>
+        <p>The left panel shows the department's org tree — 157 people, 32 managers. Real names, titles, and reporting lines.</p>
+      </div>
+      <div class="callout">
+        <strong>Insight Cards</strong>
+        <p>9 insights filtered by consensus: <span class="bold">Validated</span> (4), <span class="bold">Contested</span> (4), <span class="bold">Needs Data</span> (1). Filter and sort as needed.</p>
+      </div>
+      <div class="callout green-accent">
+        <strong>Fix Plan CTA</strong>
+        <p>When you're ready, hit <span class="bold">Generate Fix Plan</span> to turn validated insights into an actionable remediation plan.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== SLIDE 4: THE VERDICT — Expanded Insight =============== -->
+  <div class="slide" data-slide="4">
+    <div class="step-header">
+      <div class="step-number">4</div>
+      <div>
+        <div class="step-chapter">Chapter VI — The Verdict</div>
+        <h2>Drill Into an Insight</h2>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="screenshot-wrap">
+      <img src="user-guide-assets/03-verdict-detail.png" alt="Expanded insight — Wolf's analysis detail">
+    </div>
+    <div class="callouts">
+      <div class="callout">
+        <strong>Wolf's Finding</strong>
+        <p>The Wolf's detailed analysis of the organizational issue — what it found, backed by data from your uploaded dataset.</p>
+      </div>
+      <div class="callout">
+        <strong>Recommendation</strong>
+        <p>Specific, actionable recommendation with impact estimate and confidence score (95/100 in this case).</p>
+      </div>
+      <div class="callout blood-accent">
+        <strong>Supporting Metrics</strong>
+        <p>Quantitative evidence: headcount, spans of control, ratios, and comparisons that back the Wolf's assessment.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== SLIDE 5: THE RESTRUCTURE — Select Analysis =============== -->
+  <div class="slide" data-slide="5">
+    <div class="step-header">
+      <div class="step-number">5</div>
+      <div>
+        <div class="step-chapter">Chapter X — The Restructure</div>
+        <h2>Select an Analysis to Restructure</h2>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="screenshot-wrap">
+      <img src="user-guide-assets/04-restructure-select.png" alt="The Restructure — Select analysis">
+    </div>
+    <div class="callouts">
+      <div class="callout">
+        <strong>Analysis Picker</strong>
+        <p>Choose which completed analysis to use as the basis for a restructure plan. Each shows its scope and date.</p>
+      </div>
+      <div class="callout">
+        <strong>Generate Plan</strong>
+        <p>Click <span class="bold">Generate Restructure Plan</span> to have the Architect agent design a before/after org transformation.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== SLIDE 6: THE RESTRUCTURE — Summary =============== -->
+  <div class="slide" data-slide="6">
+    <div class="step-header">
+      <div class="step-number">6</div>
+      <div>
+        <div class="step-chapter">Chapter X — The Restructure</div>
+        <h2>Restructure Summary</h2>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="screenshot-wrap">
+      <img src="user-guide-assets/05-restructure-summary.png" alt="Restructure summary — key metrics">
+    </div>
+    <div class="callouts">
+      <div class="callout">
+        <strong>Top-Line Impact</strong>
+        <p><span class="bold">12 positions eliminated</span>, <span class="bold">4 management layers removed</span>, <span class="bold">3 structural operations</span> — the headline numbers for leadership review.</p>
+      </div>
+      <div class="callout">
+        <strong>Strategy Title</strong>
+        <p>"Flattening Payments into a High-Velocity Squad Model" — the Architect agent names the transformation strategy.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== SLIDE 7: THE RESTRUCTURE — Before/After =============== -->
+  <div class="slide" data-slide="7">
+    <div class="step-header">
+      <div class="step-number">7</div>
+      <div>
+        <div class="step-chapter">Chapter X — The Restructure</div>
+        <h2>Before / After Comparison</h2>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="screenshot-wrap">
+      <img src="user-guide-assets/06-restructure-details.png" alt="Before/After metrics and structural operations">
+    </div>
+    <div class="callouts">
+      <div class="callout">
+        <strong>Metrics Shift</strong>
+        <p>Managers: 32 to 20. ICs: 125 to 137. Builder Ratio: 3.9:1 to 6.8:1. Max Depth: 7 to 3. Concrete measurable change.</p>
+      </div>
+      <div class="callout blood-accent">
+        <strong>Operations</strong>
+        <p>Three structural operations: <span class="bold">Flatten</span> (layers), <span class="bold">Eliminate</span> (roles), <span class="bold">Merge</span> (teams). Each with affected positions and rationale.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== SLIDE 8: THE FIXING — Summary =============== -->
+  <div class="slide" data-slide="8">
+    <div class="step-header">
+      <div class="step-number">8</div>
+      <div>
+        <div class="step-chapter">Chapter VIII — The Fixing</div>
+        <h2>Fix Plan Executive Summary</h2>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="screenshot-wrap">
+      <img src="user-guide-assets/07-fixing-summary.png" alt="Fix plan summary — 17 steps, 3 phases">
+    </div>
+    <div class="callouts">
+      <div class="callout">
+        <strong>Plan Overview</strong>
+        <p><span class="bold">17 action steps</span> across <span class="bold">3 phases</span>, estimated <span class="bold">8-10 weeks</span>. Generated from the validated insights.</p>
+      </div>
+      <div class="callout blood-accent">
+        <strong>Top Priority</strong>
+        <p>The most urgent fix is highlighted at the top — the single action item leadership should start with immediately.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== SLIDE 9: THE FIXING — Phases =============== -->
+  <div class="slide" data-slide="9">
+    <div class="step-header">
+      <div class="step-number">9</div>
+      <div>
+        <div class="step-chapter">Chapter VIII — The Fixing</div>
+        <h2>Phased Execution Plan</h2>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="screenshot-wrap">
+      <img src="user-guide-assets/08-fixing-phases.png" alt="Execution phases — Quick Wins, Hierarchy Flattening">
+    </div>
+    <div class="callouts">
+      <div class="callout">
+        <strong>Phase 1: Quick Wins</strong>
+        <p>Weeks 1-2 — Structural cleanup. Immediate, low-risk actions like eliminating unnecessary management layers.</p>
+      </div>
+      <div class="callout">
+        <strong>Phase 2: Flattening</strong>
+        <p>Weeks 3-6 — Hierarchy flattening and span expansion. Bigger structural changes that reshape the org chart.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== SLIDE 10: THE FIXING — Breakdown =============== -->
+  <div class="slide" data-slide="10">
+    <div class="step-header">
+      <div class="step-number">10</div>
+      <div>
+        <div class="step-chapter">Chapter VIII — The Fixing</div>
+        <h2>Per-Insight Breakdown</h2>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="screenshot-wrap">
+      <img src="user-guide-assets/09-fixing-breakdown.png" alt="Phase 3 and per-insight breakdown">
+    </div>
+    <div class="callouts">
+      <div class="callout">
+        <strong>Phase 3: Strategic Shift</strong>
+        <p>Weeks 7+ — AI-native transformation. Long-term moves like replacing coordination roles with AI tooling.</p>
+      </div>
+      <div class="callout green-accent">
+        <strong>Per-Insight Drill-Down</strong>
+        <p>Every original insight is mapped to its specific fix steps. Full traceability from problem to solution.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============== SLIDE 11: CLOSING =============== -->
+  <div class="slide closing-slide" data-slide="11">
+    <h1>THE WOLF</h1>
+    <div class="tagline">"That's thirty minutes away. I'll be there in ten."</div>
+    <div class="flow">
+      <span>Upload</span> &rarr; Scope &rarr; <span>Analyze</span> &rarr; See the Org &rarr; <span>Restructure</span> &rarr; Fix
+    </div>
+    <div class="footer-note">
+      Need help? Questions? Just run another interrogation.<br>
+      The Wolf is always ready.
+    </div>
+  </div>
+
+</div>
+
+<!-- Menu Button -->
+<button class="menu-btn" id="menuBtn" aria-label="Slide menu">
+  <span></span><span></span><span></span>
+</button>
+
+<!-- Menu Overlay -->
+<div class="menu-overlay" id="menuOverlay"></div>
+
+<!-- Menu Panel -->
+<div class="menu-panel" id="menuPanel">
+  <h3>Guide Steps</h3>
+  <div id="menuItems"></div>
+</div>
+
+<!-- Nav -->
+<div class="nav">
+  <button id="prev" aria-label="Previous slide">&#8592;</button>
+  <button id="next" aria-label="Next slide">&#8594;</button>
+</div>
+<div class="progress" id="progress"></div>
+<div class="slide-counter" id="counter"></div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  // Slide titles for menu
+  const slideTitles = [
+    'The Wolf — User Guide',
+    '1. Select Focus — Department or Manager',
+    '2. Analysis Complete',
+    '3. Review Insights + Org Sidebar',
+    '4. Drill Into an Insight',
+    '5. Select Analysis to Restructure',
+    '6. Restructure Summary',
+    '7. Before / After Comparison',
+    '8. Fix Plan Executive Summary',
+    '9. Phased Execution Plan',
+    '10. Per-Insight Breakdown',
+    'The Wolf'
+  ];
+
+  // Build menu
+  const menuItems = document.getElementById('menuItems');
+  slideTitles.forEach((title, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'menu-item' + (i === 0 ? ' active' : '');
+    const isStep = i > 0 && i < total - 1;
+    btn.innerHTML = isStep
+      ? '<div class="item-num">' + i + '</div><span>' + title.replace(/^\d+\.\s*/, '') + '</span>'
+      : '<div class="item-num" style="background:var(--gold);color:var(--dark);">' + (i === 0 ? '~' : '~') + '</div><span>' + title + '</span>';
+    btn.addEventListener('click', () => { goTo(i); closeMenu(); });
+    menuItems.appendChild(btn);
+  });
+
+  // Menu toggle
+  const menuBtn = document.getElementById('menuBtn');
+  const menuPanel = document.getElementById('menuPanel');
+  const menuOverlay = document.getElementById('menuOverlay');
+
+  function openMenu() {
+    menuPanel.classList.add('open');
+    menuOverlay.classList.add('open');
+  }
+  function closeMenu() {
+    menuPanel.classList.remove('open');
+    menuOverlay.classList.remove('open');
+  }
+  menuBtn.addEventListener('click', () => {
+    menuPanel.classList.contains('open') ? closeMenu() : openMenu();
+  });
+  menuOverlay.addEventListener('click', closeMenu);
+
+  function goTo(n) {
+    if (n < 0 || n >= total) return;
+    slides[current].classList.remove('active');
+    current = n;
+    slides[current].classList.add('active');
+    // Reset scroll position for the new slide
+    slides[current].scrollTop = 0;
+    document.getElementById('progress').style.width = ((current + 1) / total * 100) + '%';
+    document.getElementById('counter').textContent = (current + 1) + ' / ' + total;
+
+    // Update menu active state
+    const items = menuItems.querySelectorAll('.menu-item');
+    items.forEach((item, i) => {
+      item.classList.toggle('active', i === current);
+    });
+
+    // Adapt counter + nav on dark slides
+    const counter = document.getElementById('counter');
+    const isClosing = slides[current].classList.contains('closing-slide');
+    counter.style.color = isClosing ? '#555' : '';
+    document.querySelectorAll('.nav button').forEach(b => {
+      b.style.borderColor = isClosing ? '#444' : '';
+      b.style.background = isClosing ? '#2a2a2a' : '';
+      b.style.color = isClosing ? '#999' : '';
+    });
+    menuBtn.style.borderColor = isClosing ? '#444' : '';
+    menuBtn.style.background = isClosing ? '#2a2a2a' : '';
+    menuBtn.querySelectorAll('span').forEach(s => {
+      s.style.background = isClosing ? '#999' : '';
+    });
+  }
+
+  document.getElementById('prev').addEventListener('click', () => goTo(current - 1));
+  document.getElementById('next').addEventListener('click', () => goTo(current + 1));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); goTo(current - 1); }
+    if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+    if (e.key === 'End') { e.preventDefault(); goTo(total - 1); }
+    if (e.key === 'Escape') { closeMenu(); }
+  });
+
+  // Touch swipe
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) { diff > 0 ? goTo(current + 1) : goTo(current - 1); }
+  });
+
+  goTo(0);
+</script>
+</body>
+</html>
