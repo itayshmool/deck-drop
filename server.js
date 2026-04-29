@@ -94,20 +94,23 @@ function requireGlobalAdmin(req, res, next) {
   next();
 }
 
-// --- Shared OAuth routes ---
+// =============================================
+// FIXED ROUTES FIRST (before /:slug wildcards)
+// =============================================
 
-// Start OAuth — store target slug (or __admin__) in session
-app.get('/:slug/auth/google', resolveSlug, (req, res, next) => {
-  req.session.authTarget = req.deckSlug;
-  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+// --- Health check ---
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', service: 'deck-drop', decks: listDecks().length });
 });
 
-app.get('/admin/auth/google', (req, res, next) => {
-  req.session.authTarget = '__admin__';
-  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+// --- Static assets ---
+app.get('/favicon.svg', (req, res) => {
+  const svgPath = path.join(__dirname, 'views', 'favicon.svg');
+  if (fs.existsSync(svgPath)) res.type('image/svg+xml').send(fs.readFileSync(svgPath));
+  else res.status(404).end();
 });
 
-// Single OAuth callback
+// --- OAuth callback + failure ---
 app.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/auth/failed' }),
   (req, res) => {
@@ -136,11 +139,10 @@ app.get('/auth/failed', (req, res) => {
   res.status(401).send('Authentication failed. Close this tab and try again.');
 });
 
-// --- Global admin dashboard ---
-app.get('/favicon.svg', (req, res) => {
-  const svgPath = path.join(__dirname, 'views', 'favicon.svg');
-  if (fs.existsSync(svgPath)) res.type('image/svg+xml').send(fs.readFileSync(svgPath));
-  else res.status(404).end();
+// --- Global admin routes ---
+app.get('/admin/auth/google', (req, res, next) => {
+  req.session.authTarget = '__admin__';
+  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
 });
 
 app.get('/admin/login', (req, res) => {
@@ -220,7 +222,14 @@ app.put('/api/:slug/seed', (req, res) => {
   res.json({ seeded: true, count: cleaned.length });
 });
 
-// --- Per-deck routes ---
+// =============================================
+// PARAMETERIZED /:slug ROUTES (after fixed routes)
+// =============================================
+
+app.get('/:slug/auth/google', resolveSlug, (req, res, next) => {
+  req.session.authTarget = req.deckSlug;
+  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+});
 
 app.get('/:slug/login', resolveSlug, (req, res) => {
   if (req.isAuthenticated()) return res.redirect(`/${req.deckSlug}`);
@@ -300,11 +309,6 @@ app.use('/:slug', (req, res, next) => {
   const deckPublic = path.join(DECKS_DIR, slug, 'public');
   if (!fs.existsSync(path.join(DECKS_DIR, slug, 'deck.json'))) return next();
   express.static(deckPublic, { index: false })(req, res, next);
-});
-
-// --- Health check ---
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'deck-drop', decks: listDecks().length });
 });
 
 // --- Start ---
