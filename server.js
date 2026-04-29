@@ -129,6 +129,7 @@ app.get('/auth/google/callback', (req, res, next) => {
   })(req, res, next);
 }, (req, res) => {
     const target = req.session.authTarget;
+    console.log('OAuth callback — authTarget:', target, 'sessionID:', req.sessionID);
     delete req.session.authTarget;
 
     if (target === '__admin__') {
@@ -156,7 +157,9 @@ app.get('/auth/failed', (req, res) => {
 // --- Global admin routes ---
 app.get('/admin/auth/google', (req, res, next) => {
   req.session.authTarget = '__admin__';
-  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+  req.session.save(() => {
+    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+  });
 });
 
 app.get('/admin/login', (req, res) => {
@@ -242,7 +245,9 @@ app.put('/api/:slug/seed', (req, res) => {
 
 app.get('/:slug/auth/google', resolveSlug, (req, res, next) => {
   req.session.authTarget = req.deckSlug;
-  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+  req.session.save(() => {
+    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+  });
 });
 
 app.get('/:slug/login', resolveSlug, (req, res) => {
