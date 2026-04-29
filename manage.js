@@ -5,7 +5,6 @@ require('dotenv').config({ path: '.manage.env' });
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const { execSync } = require('child_process');
 const https = require('https');
 const http = require('http');
@@ -14,10 +13,6 @@ const app = express();
 const PORT = 4000;
 const DECKS_DIR = path.join(__dirname, 'decks');
 const CONFIG_FILE = path.join(__dirname, '.manage.env');
-const REPO_URL = 'https://github.com/itayshmool/online-decks';
-const RENDER_OWNER_ID = 'tea-d4o0qcn5r7bs73cbu0pg';
-const AUTH_SERVICE_NAME = 'online-decks-auth';
-const AUTH_SERVICE_URL = `https://${AUTH_SERVICE_NAME}.onrender.com`;
 
 app.use(express.json({ limit: '50mb' }));
 
@@ -44,7 +39,6 @@ function writeConfig(updates) {
     .map(([k, v]) => `${k}=${v}`)
     .join('\n') + '\n';
   fs.writeFileSync(CONFIG_FILE, content);
-  // Reload into process.env
   for (const [k, v] of Object.entries(merged)) process.env[k] = v;
 }
 
@@ -53,51 +47,12 @@ function isValidSlug(slug) {
   return /^[a-z0-9][a-z0-9.-]*[a-z0-9]$/.test(slug) && !slug.includes('..');
 }
 
-function toServiceName(slug) {
-  return 'online-decks-' + slug.replace(/[^a-z0-9-]/g, '');
-}
-
-// --- Render API helper ---
-function renderApi(method, urlPath, body) {
-  const apiKey = readConfig().RENDER_API_KEY;
-  if (!apiKey) {
-    return Promise.reject(new Error('RENDER_API_KEY not set. Configure it in Settings.'));
-  }
-  return new Promise((resolve, reject) => {
-    const data = body ? JSON.stringify(body) : null;
-    const req = https.request({
-      hostname: 'api.render.com',
-      path: urlPath,
-      method,
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...(data ? { 'Content-Length': Buffer.byteLength(data) } : {})
-      }
-    }, (res) => {
-      let chunks = '';
-      res.on('data', (c) => { chunks += c; });
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          try { resolve(chunks ? JSON.parse(chunks) : {}); }
-          catch { resolve(chunks); }
-        } else {
-          reject(new Error(`Render API ${res.statusCode}: ${chunks}`));
-        }
-      });
-    });
-    req.on('error', reject);
-    if (data) req.write(data);
-    req.end();
-  });
-}
-
-// --- HTTP request helper (with timeout) ---
-function httpRequest(url, method, body, authSecret) {
+// --- HTTP request helper ---
+function httpRequest(url, method, body) {
   return new Promise((resolve, reject) => {
     const parsed = new URL(url);
     const transport = parsed.protocol === 'https:' ? https : http;
+    const data = body ? JSON.stringify(body) : null;
     const req = transport.request({
       hostname: parsed.hostname,
       port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
@@ -105,9 +60,8 @@ function httpRequest(url, method, body, authSecret) {
       method,
       timeout: 30000,
       headers: {
-        'Authorization': `Bearer ${authSecret}`,
         'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body)
+        ...(data ? { 'Content-Length': Buffer.byteLength(data) } : {})
       }
     }, (res) => {
       let chunks = '';
@@ -119,58 +73,9 @@ function httpRequest(url, method, body, authSecret) {
     });
     req.on('timeout', () => { req.destroy(); reject(new Error('Request timed out (30s)')); });
     req.on('error', reject);
-    req.write(body);
+    if (data) req.write(data);
     req.end();
   });
-}
-
-// --- Auth proxy deploy helper ---
-async function ensureAuthProxy(config) {
-  // Check if auth proxy service already exists
-  const services = await renderApi('GET', `/v1/services?name=${AUTH_SERVICE_NAME}&ownerId=${RENDER_OWNER_ID}`);
-  const list = Array.isArray(services) ? services : [];
-  const existing = list.find(s => (s.service || s).name === AUTH_SERVICE_NAME);
-  if (existing) {
-    return { skipped: true, url: AUTH_SERVICE_URL };
-  }
-
-  // Ensure AUTH_SECRET exists in config
-  if (!config.AUTH_SECRET) {
-    config.AUTH_SECRET = crypto.randomBytes(32).toString('hex');
-    writeConfig({ AUTH_SECRET: config.AUTH_SECRET });
-  }
-
-  const serviceBody = {
-    autoDeploy: 'yes',
-    branch: 'main',
-    name: AUTH_SERVICE_NAME,
-    ownerId: RENDER_OWNER_ID,
-    repo: REPO_URL,
-    type: 'web_service',
-    envVars: [
-      { key: 'GOOGLE_CLIENT_ID', value: config.GOOGLE_CLIENT_ID },
-      { key: 'GOOGLE_CLIENT_SECRET', value: config.GOOGLE_CLIENT_SECRET },
-      { key: 'AUTH_SECRET', value: config.AUTH_SECRET },
-      { key: 'CALLBACK_URL', value: `${AUTH_SERVICE_URL}/auth/google/callback` },
-      { key: 'ADMIN_EMAILS', value: config.ADMIN_EMAILS },
-      { key: 'DATA_DIR', value: '/var/data' },
-      { key: 'NODE_ENV', value: 'production' }
-    ],
-    serviceDetails: {
-      runtime: 'node',
-      env: 'node',
-      plan: 'starter',
-      region: 'frankfurt',
-      numInstances: 1,
-      disk: { name: 'auth-data', mountPath: '/var/data', sizeGB: 1 },
-      envSpecificDetails: {
-        buildCommand: 'npm install',
-        startCommand: 'node auth-proxy.js'
-      }
-    }
-  };
-  await renderApi('POST', '/v1/services', serviceBody);
-  return { skipped: false, url: AUTH_SERVICE_URL };
 }
 
 // --- Git helpers ---
@@ -220,14 +125,7 @@ app.get('/api/decks', (req, res) => {
     const htmlSize = hasHtml ? fs.statSync(htmlPath).size : 0;
     let userCount = 0;
     try { userCount = readDeckSeed(slug).users.length; } catch { /* no seed */ }
-    return {
-      slug,
-      name: meta.name,
-      renderUrl: meta.renderUrl || null,
-      userCount,
-      hasHtml,
-      htmlSize
-    };
+    return { slug, name: meta.name, userCount, hasHtml, htmlSize };
   });
   res.json({ decks });
 });
@@ -255,7 +153,6 @@ app.post('/api/decks', (req, res) => {
   if (htmlContent && htmlContent.trim()) {
     fs.writeFileSync(path.join(deckDir, 'public', 'index.html'), htmlContent);
   } else {
-    // Placeholder so preview doesn't 404
     fs.writeFileSync(
       path.join(deckDir, 'public', 'index.html'),
       `<!DOCTYPE html><html><body style="background:#0a0a0a;color:#deff9a;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><h1>${name.trim()}</h1></body></html>`
@@ -283,20 +180,12 @@ app.post('/api/decks/:slug/duplicate', (req, res) => {
 
   fs.mkdirSync(path.join(newDir, 'data'), { recursive: true });
   fs.mkdirSync(path.join(newDir, 'public'), { recursive: true });
-
-  // New deck.json — new name, no renderUrl (fresh service)
   writeDeckMeta(newSlug, { name: newName.trim() });
-
-  // Seed users: copy from source if requested, else empty
   const users = copyUsers ? (readDeckSeed(slug).users || []) : [];
   writeDeckSeed(newSlug, { users });
-
-  // Copy HTML
   const srcHtml = path.join(DECKS_DIR, slug, 'public', 'index.html');
   const dstHtml = path.join(newDir, 'public', 'index.html');
-  if (fs.existsSync(srcHtml)) {
-    fs.copyFileSync(srcHtml, dstHtml);
-  }
+  if (fs.existsSync(srcHtml)) fs.copyFileSync(srcHtml, dstHtml);
 
   res.json({ success: true, slug: newSlug });
 });
@@ -316,9 +205,7 @@ app.put('/api/decks/:slug/users', (req, res) => {
     return res.status(404).json({ error: 'Deck not found' });
   }
   const { users } = req.body;
-  if (!Array.isArray(users)) {
-    return res.status(400).json({ error: 'users array required' });
-  }
+  if (!Array.isArray(users)) return res.status(400).json({ error: 'users array required' });
   const cleaned = users.map(e => e.trim().toLowerCase()).filter(Boolean);
   writeDeckSeed(slug, { users: cleaned });
   res.json({ success: true, count: cleaned.length });
@@ -335,6 +222,40 @@ app.post('/api/decks/:slug/html', (req, res) => {
   res.json({ success: true });
 });
 
+app.post('/api/decks/:slug/update', (req, res) => {
+  const { slug } = req.params;
+  if (!isValidSlug(slug) || !fs.existsSync(path.join(DECKS_DIR, slug))) {
+    return res.status(404).json({ error: 'Deck not found' });
+  }
+  const meta = readDeckMeta(slug);
+  const { htmlContent } = req.body;
+  if (!htmlContent) return res.status(400).json({ error: 'htmlContent required' });
+
+  const steps = [];
+  try {
+    steps.push({ step: 'Write HTML', status: 'done' });
+    fs.writeFileSync(path.join(DECKS_DIR, slug, 'public', 'index.html'), htmlContent);
+
+    steps.push({ step: 'Git add', status: 'done' });
+    git(`add decks/${slug}/`);
+
+    try {
+      git(`commit -m "Update deck: ${meta.name}"`);
+      steps.push({ step: 'Git commit', status: 'done' });
+    } catch (e) {
+      steps.push({ step: 'Git commit', status: 'skipped', message: 'No changes to commit' });
+    }
+
+    git('push origin main');
+    steps.push({ step: 'Git push', status: 'done', message: 'Auto-deploy triggered' });
+
+    res.json({ success: true, steps });
+  } catch (err) {
+    steps.push({ step: steps.length ? 'Error' : 'Unknown', status: 'error', message: err.message });
+    res.status(500).json({ error: err.message, steps });
+  }
+});
+
 app.get('/api/decks/:slug/preview', (req, res) => {
   const { slug } = req.params;
   if (!isValidSlug(slug)) return res.status(400).send('Invalid slug');
@@ -343,7 +264,6 @@ app.get('/api/decks/:slug/preview', (req, res) => {
   res.sendFile(htmlPath);
 });
 
-// Static assets for preview (images referenced relative to the preview HTML)
 app.get('/api/decks/:slug/images/*', (req, res) => {
   const { slug } = req.params;
   if (!isValidSlug(slug)) return res.status(400).send('Invalid slug');
@@ -352,156 +272,81 @@ app.get('/api/decks/:slug/images/*', (req, res) => {
   res.sendFile(imgPath);
 });
 
+// --- Deploy (simplified: git push + seed) ---
 app.post('/api/decks/:slug/deploy', async (req, res) => {
   const { slug } = req.params;
   if (!isValidSlug(slug) || !fs.existsSync(path.join(DECKS_DIR, slug))) {
     return res.status(404).json({ error: 'Deck not found' });
   }
   const config = readConfig();
-  const missing = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'ADMIN_EMAILS', 'RENDER_API_KEY']
+  const missing = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'ADMIN_EMAILS']
     .filter(k => !config[k]);
   if (missing.length) {
     return res.status(400).json({ error: `Missing config: ${missing.join(', ')}. Configure in Settings.` });
+  }
+  if (!config.BASE_URL) {
+    return res.status(400).json({ error: 'Missing BASE_URL. Configure the production URL in Settings.' });
   }
 
   const steps = [];
   try {
     const meta = readDeckMeta(slug);
-    const serviceName = toServiceName(slug);
 
-    // 1. Ensure shared auth proxy exists
-    steps.push({ step: 'auth-proxy', status: 'running' });
-    const authResult = await ensureAuthProxy(config);
-    // Re-read config in case AUTH_SECRET was just generated
-    const freshConfig = readConfig();
-    steps[steps.length - 1].status = authResult.skipped ? 'skipped' : 'done';
-    steps[steps.length - 1].message = authResult.skipped
-      ? `Auth proxy already running at ${authResult.url}`
-      : `Created auth proxy at ${authResult.url}`;
-
-    // 2. Git operations
+    // 1. Git operations
     steps.push({ step: 'git-add', status: 'running' });
     git(`add decks/${slug}/`);
     steps[steps.length - 1].status = 'done';
 
-    let commitOk = true;
     try {
       steps.push({ step: 'git-commit', status: 'running' });
       git(`commit -m "Deploy deck: ${meta.name}"`);
       steps[steps.length - 1].status = 'done';
     } catch (e) {
-      // Nothing to commit is fine
       steps[steps.length - 1].status = 'skipped';
       steps[steps.length - 1].message = 'No changes to commit';
-      commitOk = false;
     }
 
     steps.push({ step: 'git-push', status: 'running' });
     git('push origin main');
     steps[steps.length - 1].status = 'done';
+    steps[steps.length - 1].message = 'Auto-deploy triggered';
 
-    // 3. If renderUrl already set, skip service creation (auto-deploy handles it)
-    if (meta.renderUrl) {
-      steps.push({
-        step: 'render-service',
-        status: 'skipped',
-        message: `Already deployed at ${meta.renderUrl}. Auto-deploy triggered by push.`
-      });
-      return res.json({ success: true, steps, renderUrl: meta.renderUrl });
-    }
-
-    // 4. Create Render service (stateless — no disk, users stored on auth proxy)
-    steps.push({ step: 'render-service', status: 'running' });
-    const sessionSecret = crypto.randomBytes(32).toString('hex');
-    const serviceBody = {
-      autoDeploy: 'yes',
-      branch: 'main',
-      name: serviceName,
-      ownerId: RENDER_OWNER_ID,
-      repo: REPO_URL,
-      type: 'web_service',
-      envVars: [
-        { key: 'DECK_NAME', value: slug },
-        { key: 'AUTH_SERVICE_URL', value: AUTH_SERVICE_URL },
-        { key: 'AUTH_SECRET', value: freshConfig.AUTH_SECRET },
-        { key: 'SESSION_SECRET', value: sessionSecret },
-        { key: 'ADMIN_EMAILS', value: freshConfig.ADMIN_EMAILS },
-        { key: 'NODE_ENV', value: 'production' }
-      ],
-      serviceDetails: {
-        runtime: 'node',
-        env: 'node',
-        plan: 'starter',
-        region: 'frankfurt',
-        numInstances: 1,
-        envSpecificDetails: {
-          buildCommand: 'npm install',
-          startCommand: 'node server.js'
-        }
-      }
-    };
-    const result = await renderApi('POST', '/v1/services', serviceBody);
-    const service = result.service || result;
-    const renderUrl = service.serviceDetails && service.serviceDetails.url
-      ? service.serviceDetails.url
-      : `https://${serviceName}.onrender.com`;
-    steps[steps.length - 1].status = 'done';
-    steps[steps.length - 1].message = renderUrl;
-
-    // 5. Seed users to auth proxy (retries to handle cold starts)
+    // 2. Seed users to running service
     steps.push({ step: 'seed-users', status: 'running' });
     try {
       const seedData = readDeckSeed(slug);
-      const seedUrl = `${AUTH_SERVICE_URL}/api/${slug}/seed`;
-      const seedBody = JSON.stringify({ users: seedData.users });
+      const seedUrl = `${config.BASE_URL}/api/${slug}/seed`;
       const maxRetries = 3;
       let lastError;
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          await httpRequest(seedUrl, 'PUT', seedBody, freshConfig.AUTH_SECRET);
+          await httpRequest(seedUrl, 'PUT', { users: seedData.users });
           lastError = null;
           break;
         } catch (e) {
           lastError = e;
           if (attempt < maxRetries) {
-            // Wait longer each retry to give cold-starting service time to spin up
             await new Promise(r => setTimeout(r, attempt * 5000));
           }
         }
       }
       if (lastError) throw lastError;
       steps[steps.length - 1].status = 'done';
-      steps[steps.length - 1].message = `Seeded ${seedData.users.length} users to auth proxy`;
+      steps[steps.length - 1].message = `Seeded ${seedData.users.length} users`;
     } catch (e) {
       steps[steps.length - 1].status = 'error';
-      steps[steps.length - 1].message = `User seed failed after retries: ${e.message}`;
+      steps[steps.length - 1].message = `Seed failed: ${e.message}`;
     }
 
-    // 6. Save renderUrl to deck.json and to auth proxy
-    writeDeckMeta(slug, { ...meta, renderUrl });
-    try {
-      const metaUrl = `${AUTH_SERVICE_URL}/api/${slug}/meta`;
-      const metaBody = JSON.stringify({ renderUrl });
-      await httpRequest(metaUrl, 'PUT', metaBody, freshConfig.AUTH_SECRET);
-    } catch { /* non-fatal — admin View link will fall back to constructed URL */ }
-    try {
-      git(`add decks/${slug}/deck.json`);
-      git(`commit -m "Save Render URL for ${slug}"`);
-      git('push origin main');
-    } catch { /* ignore if nothing to commit */ }
-
-    res.json({
-      success: true,
-      steps,
-      renderUrl,
-      dashboardUrl: service.dashboardUrl || null
-    });
+    const deckUrl = `${config.BASE_URL}/${slug}`;
+    res.json({ success: true, steps, deckUrl });
   } catch (err) {
     if (steps.length) steps[steps.length - 1].status = 'error';
     res.status(500).json({ error: err.message, steps });
   }
 });
 
+// --- Config ---
 app.get('/api/config', (req, res) => {
   const c = readConfig();
   const mask = (v) => v ? v.slice(0, 4) + '...' + v.slice(-4) : '';
@@ -509,20 +354,17 @@ app.get('/api/config', (req, res) => {
     googleClientId: c.GOOGLE_CLIENT_ID ? mask(c.GOOGLE_CLIENT_ID) : '',
     hasGoogleSecret: !!c.GOOGLE_CLIENT_SECRET,
     adminEmails: c.ADMIN_EMAILS || '',
-    hasRenderApiKey: !!c.RENDER_API_KEY,
-    hasAuthSecret: !!c.AUTH_SECRET,
-    authServiceUrl: AUTH_SERVICE_URL
+    baseUrl: c.BASE_URL || ''
   });
 });
 
 app.put('/api/config', (req, res) => {
-  const { googleClientId, googleClientSecret, adminEmails, renderApiKey, authSecret } = req.body;
+  const { googleClientId, googleClientSecret, adminEmails, baseUrl } = req.body;
   const updates = {};
   if (googleClientId) updates.GOOGLE_CLIENT_ID = googleClientId.trim();
   if (googleClientSecret) updates.GOOGLE_CLIENT_SECRET = googleClientSecret.trim();
   if (adminEmails) updates.ADMIN_EMAILS = adminEmails.trim();
-  if (renderApiKey) updates.RENDER_API_KEY = renderApiKey.trim();
-  if (authSecret) updates.AUTH_SECRET = authSecret.trim();
+  if (baseUrl) updates.BASE_URL = baseUrl.trim().replace(/\/$/, '');
   writeConfig(updates);
   res.json({ success: true });
 });

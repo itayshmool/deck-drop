@@ -163,8 +163,8 @@
         <h1>Admin Panel</h1>
       </div>
       <div class="nav-links">
-        <a href="/">View Deck</a>
-        <a href="/logout">Sign Out</a>
+        <a href="/{{SLUG}}">View Deck</a>
+        <a href="/{{SLUG}}/logout">Sign Out</a>
       </div>
     </div>
 
@@ -203,7 +203,7 @@
     let adminEmails = [];
 
     async function loadUsers() {
-      const res = await fetch('/api/users');
+      const res = await fetch('/{{SLUG}}/api/users');
       const data = await res.json();
       adminEmails = (data.admins || []).map(e => e.toLowerCase());
       const list = document.getElementById('userList');
@@ -238,7 +238,7 @@
     }
 
     async function addEmails(emails) {
-      const res = await fetch('/api/users', {
+      const res = await fetch('/{{SLUG}}/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ emails })
@@ -253,7 +253,7 @@
     }
 
     async function removeUser(email) {
-      await fetch(`/api/users/${encodeURIComponent(email)}`, { method: 'DELETE' });
+      await fetch(`/{{SLUG}}/api/users/${encodeURIComponent(email)}`, { method: 'DELETE' });
       showToast(`Removed ${email}`);
       loadUsers();
     }

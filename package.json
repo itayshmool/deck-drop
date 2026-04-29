@@ -1,7 +1,7 @@
 {
-  "name": "online-decks",
-  "version": "1.0.0",
-  "description": "Protected presentation decks with Google OAuth",
+  "name": "deck-drop",
+  "version": "2.0.0",
+  "description": "DeckDrop — presentation deck management with Google OAuth",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

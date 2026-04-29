@@ -4,52 +4,37 @@ const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const crypto = require('crypto');
 const path = require('path');
-
-// --- Deck resolution ---
-const DECK_NAME = process.env.DECK_NAME;
-if (!DECK_NAME) {
-  console.error('FATAL: DECK_NAME env var is required. Set it to a folder name under decks/');
-  process.exit(1);
-}
-
-const DECK_DIR = path.join(__dirname, 'decks', DECK_NAME);
-const deckMeta = JSON.parse(fs.readFileSync(path.join(DECK_DIR, 'deck.json'), 'utf8'));
-
 const { createAuth } = require('./middleware/auth');
-const { requireAuth, requireAdmin, readUsers, writeUsers, isAdmin, ADMIN_EMAILS } = createAuth(DECK_DIR, {
-  authServiceUrl: process.env.AUTH_SERVICE_URL,
-  deckSlug: DECK_NAME
-});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL; // shared auth proxy
-const AUTH_SECRET = process.env.AUTH_SECRET;
+const DECKS_DIR = path.join(__dirname, 'decks');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
+  .split(',')
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean);
 
-// Verify a signed token from the auth proxy
-function verifyToken(tokenStr) {
-  if (!AUTH_SECRET) return null;
-  try {
-    const { data, sig } = JSON.parse(Buffer.from(tokenStr, 'base64url').toString());
-    const expected = crypto.createHmac('sha256', AUTH_SECRET).update(data).digest('hex');
-    if (sig !== expected) return null;
-    const payload = JSON.parse(data);
-    if (payload.exp < Date.now()) return null;
-    return payload;
-  } catch {
-    return null;
-  }
+// --- Deck discovery ---
+function listDecks() {
+  if (!fs.existsSync(DECKS_DIR)) return [];
+  return fs.readdirSync(DECKS_DIR, { withFileTypes: true })
+    .filter(d => d.isDirectory())
+    .map(d => d.name)
+    .filter(slug => fs.existsSync(path.join(DECKS_DIR, slug, 'deck.json')));
 }
 
-// Trust Render's reverse proxy (required for secure cookies)
-app.set('trust proxy', 1);
+function readDeckMeta(slug) {
+  return JSON.parse(fs.readFileSync(path.join(DECKS_DIR, slug, 'deck.json'), 'utf8'));
+}
 
 // --- View helper ---
-function sendView(res, viewName) {
+function sendView(res, viewName, replacements) {
   let html = fs.readFileSync(path.join(__dirname, 'views', viewName), 'utf8');
-  html = html.replace(/\{\{DECK_NAME\}\}/g, deckMeta.name);
+  for (const [key, value] of Object.entries(replacements || {})) {
+    html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+  }
   res.type('html').send(html);
 }
 
@@ -57,24 +42,23 @@ function sendView(res, viewName) {
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((user, done) => done(null, user));
 
-// Only configure Google Strategy for local dev (when no shared auth proxy)
-if (!AUTH_SERVICE_URL) {
-  passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.CALLBACK_URL || `http://localhost:${PORT}/auth/google/callback`
-  }, (accessToken, refreshToken, profile, done) => {
-    const email = profile.emails && profile.emails[0] && profile.emails[0].value;
-    done(null, {
-      id: profile.id,
-      email: email,
-      name: profile.displayName,
-      photo: profile.photos && profile.photos[0] && profile.photos[0].value
-    });
-  }));
-}
+const CALLBACK_URL = process.env.CALLBACK_URL || `http://localhost:${PORT}/auth/google/callback`;
+
+passport.use(new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: CALLBACK_URL
+}, (accessToken, refreshToken, profile, done) => {
+  const email = profile.emails && profile.emails[0] && profile.emails[0].value;
+  done(null, {
+    email,
+    name: profile.displayName,
+    photo: profile.photos && profile.photos[0] && profile.photos[0].value
+  });
+}));
 
 // --- Middleware ---
+app.set('trust proxy', 1);
 app.use(express.json());
 app.use(session({
   secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
@@ -82,115 +66,198 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    maxAge: 7 * 24 * 60 * 60 * 1000
   }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
 
-// --- Auth routes ---
-app.get('/login', (req, res) => {
-  if (req.isAuthenticated()) return res.redirect('/');
-  sendView(res, 'login.html');
-});
-
-if (AUTH_SERVICE_URL) {
-  // Shared auth proxy mode: redirect to the proxy with our origin
-  app.get('/auth/google', (req, res) => {
-    const origin = `${req.protocol}://${req.get('host')}`;
-    const authUrl = new URL('/auth/google', AUTH_SERVICE_URL);
-    authUrl.searchParams.set('origin', origin);
-    res.redirect(authUrl.toString());
-  });
-
-  // Receive signed token back from auth proxy
-  app.get('/auth/verify', (req, res) => {
-    const { token } = req.query;
-    if (!token) return res.redirect('/login');
-    const user = verifyToken(token);
-    if (!user) return res.redirect('/login');
-
-    // Create session (same shape as Passport user)
-    req.login({ email: user.email, name: user.name, photo: user.photo }, async (err) => {
-      if (err) return res.redirect('/login');
-      const email = user.email;
-      if (isAdmin(email)) return res.redirect('/');
-      try {
-        const data = await readUsers();
-        if (data.users.includes(email.toLowerCase())) {
-          return res.redirect('/');
-        }
-      } catch (e) {
-        console.error('Failed to check user whitelist:', e.message);
-      }
-      return res.redirect('/denied');
-    });
-  });
-} else {
-  // Local dev mode: direct Google OAuth
-  app.get('/auth/google', passport.authenticate('google', {
-    scope: ['profile', 'email']
-  }));
-
-  app.get('/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/login' }),
-    async (req, res) => {
-      const email = req.user.email;
-      if (isAdmin(email)) return res.redirect('/');
-      try {
-        const data = await readUsers();
-        if (data.users.includes(email.toLowerCase())) {
-          return res.redirect('/');
-        }
-      } catch (e) {
-        console.error('Failed to check user whitelist:', e.message);
-      }
-      return res.redirect('/denied');
-    }
-  );
+// --- Slug validation middleware ---
+function resolveSlug(req, res, next) {
+  const slug = req.params.slug;
+  const deckDir = path.join(DECKS_DIR, slug);
+  const metaFile = path.join(deckDir, 'deck.json');
+  if (!fs.existsSync(metaFile)) return res.status(404).send('Deck not found');
+  req.deckSlug = slug;
+  req.deckDir = deckDir;
+  req.deckMeta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
+  req.deckAuth = createAuth(DATA_DIR, slug);
+  next();
 }
 
-app.get('/logout', (req, res) => {
+// --- Global admin middleware ---
+function requireGlobalAdmin(req, res, next) {
+  if (!req.isAuthenticated()) return res.redirect('/admin/login');
+  if (!ADMIN_EMAILS.includes((req.user.email || '').toLowerCase())) {
+    return res.status(403).send('Your account is not authorized as an admin.');
+  }
+  next();
+}
+
+// --- Shared OAuth routes ---
+
+// Start OAuth — store target slug (or __admin__) in session
+app.get('/:slug/auth/google', resolveSlug, (req, res, next) => {
+  req.session.authTarget = req.deckSlug;
+  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+});
+
+app.get('/admin/auth/google', (req, res, next) => {
+  req.session.authTarget = '__admin__';
+  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+});
+
+// Single OAuth callback
+app.get('/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: '/auth/failed' }),
+  (req, res) => {
+    const target = req.session.authTarget;
+    delete req.session.authTarget;
+
+    if (target === '__admin__') {
+      const email = (req.user.email || '').toLowerCase();
+      if (ADMIN_EMAILS.includes(email)) return res.redirect('/admin');
+      return res.status(403).send('Your account is not authorized as an admin.');
+    }
+
+    if (!target) return res.redirect('/auth/failed');
+
+    // Check deck whitelist
+    const auth = createAuth(DATA_DIR, target);
+    const email = (req.user.email || '').toLowerCase();
+    if (auth.isAdmin(email) || auth.isWhitelisted(email)) {
+      return res.redirect(`/${target}`);
+    }
+    return res.redirect(`/${target}/denied`);
+  }
+);
+
+app.get('/auth/failed', (req, res) => {
+  res.status(401).send('Authentication failed. Close this tab and try again.');
+});
+
+// --- Global admin dashboard ---
+app.get('/favicon.svg', (req, res) => {
+  const svgPath = path.join(__dirname, 'views', 'favicon.svg');
+  if (fs.existsSync(svgPath)) res.type('image/svg+xml').send(fs.readFileSync(svgPath));
+  else res.status(404).end();
+});
+
+app.get('/admin/login', (req, res) => {
+  if (req.isAuthenticated() && ADMIN_EMAILS.includes((req.user.email || '').toLowerCase())) {
+    return res.redirect('/admin');
+  }
+  sendView(res, 'dashboard-login.html');
+});
+
+app.get('/admin', requireGlobalAdmin, (req, res) => {
+  sendView(res, 'dashboard.html');
+});
+
+app.get('/admin/logout', (req, res) => {
   req.logout(() => {
     req.session.destroy();
-    res.redirect('/login');
+    res.redirect('/admin/login');
   });
 });
 
-app.get('/denied', (req, res) => {
-  sendView(res, 'denied.html');
+app.get('/admin/api/me', requireGlobalAdmin, (req, res) => {
+  res.json({ email: req.user.email, name: req.user.name, photo: req.user.photo });
 });
 
-// --- Deck (protected) ---
-app.get('/', requireAuth, (req, res) => {
-  res.sendFile(path.join(DECK_DIR, 'public', 'index.html'));
+app.get('/admin/api/decks', requireGlobalAdmin, (req, res) => {
+  const decks = listDecks().map(slug => {
+    const meta = readDeckMeta(slug);
+    const auth = createAuth(DATA_DIR, slug);
+    const data = auth.readUsers();
+    return { slug, name: meta.name, userCount: data.users.length };
+  });
+  res.json({ decks });
 });
 
-// Static assets from deck's public/ folder (images, etc.) — index: false so / stays auth-protected
-app.use(express.static(path.join(DECK_DIR, 'public'), { index: false }));
-
-// --- Admin routes ---
-app.get('/admin', requireAdmin, (req, res) => {
-  sendView(res, 'admin.html');
+app.get('/admin/api/decks/:slug', requireGlobalAdmin, (req, res) => {
+  const auth = createAuth(DATA_DIR, req.params.slug);
+  res.json(auth.readUsers());
 });
 
-app.get('/api/users', requireAdmin, async (req, res) => {
-  try {
-    const data = await readUsers();
+app.post('/admin/api/decks/:slug', requireGlobalAdmin, (req, res) => {
+  const { emails } = req.body;
+  if (!emails || !Array.isArray(emails)) return res.status(400).json({ error: 'emails array required' });
+  const auth = createAuth(DATA_DIR, req.params.slug);
+  const data = auth.readUsers();
+  const added = [];
+  for (const raw of emails) {
+    const email = raw.trim().toLowerCase();
+    if (email && !data.users.includes(email)) {
+      data.users.push(email);
+      added.push(email);
+    }
+  }
+  auth.writeUsers(data);
+  res.json({ added, total: data.users.length });
+});
+
+app.delete('/admin/api/decks/:slug/:email', requireGlobalAdmin, (req, res) => {
+  const auth = createAuth(DATA_DIR, req.params.slug);
+  const data = auth.readUsers();
+  const email = req.params.email.toLowerCase();
+  data.users = data.users.filter(e => e !== email);
+  auth.writeUsers(data);
+  res.json({ removed: email, total: data.users.length });
+});
+
+// --- User seed API (called by manager during deploy) ---
+app.put('/api/:slug/seed', (req, res) => {
+  const { users } = req.body;
+  if (!Array.isArray(users)) return res.status(400).json({ error: 'users array required' });
+  const auth = createAuth(DATA_DIR, req.params.slug);
+  const existing = auth.readUsers();
+  if (existing.users.length > 0) {
+    return res.json({ seeded: false, message: 'Users already exist, skipping seed', count: existing.users.length });
+  }
+  const cleaned = users.map(e => e.trim().toLowerCase()).filter(Boolean);
+  auth.writeUsers({ users: cleaned });
+  res.json({ seeded: true, count: cleaned.length });
+});
+
+// --- Per-deck routes ---
+
+app.get('/:slug/login', resolveSlug, (req, res) => {
+  if (req.isAuthenticated()) return res.redirect(`/${req.deckSlug}`);
+  sendView(res, 'login.html', { DECK_NAME: req.deckMeta.name, SLUG: req.deckSlug });
+});
+
+app.get('/:slug/logout', (req, res) => {
+  const slug = req.params.slug;
+  req.logout(() => {
+    req.session.destroy();
+    res.redirect(`/${slug}/login`);
+  });
+});
+
+app.get('/:slug/denied', resolveSlug, (req, res) => {
+  sendView(res, 'denied.html', { DECK_NAME: req.deckMeta.name, SLUG: req.deckSlug });
+});
+
+app.get('/:slug/admin', resolveSlug, (req, res) => {
+  req.deckAuth.requireAdmin(req, res, () => {
+    sendView(res, 'admin.html', { DECK_NAME: req.deckMeta.name, SLUG: req.deckSlug });
+  });
+});
+
+app.get('/:slug/api/users', resolveSlug, (req, res) => {
+  req.deckAuth.requireAdmin(req, res, async () => {
+    const data = req.deckAuth.readUsers();
     data.admins = ADMIN_EMAILS;
     res.json(data);
-  } catch (e) {
-    res.status(500).json({ error: 'Failed to read users: ' + e.message });
-  }
+  });
 });
 
-app.post('/api/users', requireAdmin, async (req, res) => {
-  const { emails } = req.body;
-  if (!emails || !Array.isArray(emails)) {
-    return res.status(400).json({ error: 'emails array required' });
-  }
-  try {
-    const data = await readUsers();
+app.post('/:slug/api/users', resolveSlug, (req, res) => {
+  req.deckAuth.requireAdmin(req, res, () => {
+    const { emails } = req.body;
+    if (!emails || !Array.isArray(emails)) return res.status(400).json({ error: 'emails array required' });
+    const data = req.deckAuth.readUsers();
     const added = [];
     for (const raw of emails) {
       const email = raw.trim().toLowerCase();
@@ -199,34 +266,50 @@ app.post('/api/users', requireAdmin, async (req, res) => {
         added.push(email);
       }
     }
-    await writeUsers(data);
+    req.deckAuth.writeUsers(data);
     res.json({ added, total: data.users.length });
-  } catch (e) {
-    res.status(500).json({ error: 'Failed to update users: ' + e.message });
-  }
+  });
 });
 
-app.delete('/api/users/:email', requireAdmin, async (req, res) => {
-  const email = req.params.email.toLowerCase();
-  if (ADMIN_EMAILS.includes(email)) {
-    return res.status(400).json({ error: 'Cannot remove admin' });
-  }
-  try {
-    const data = await readUsers();
+app.delete('/:slug/api/users/:email', resolveSlug, (req, res) => {
+  req.deckAuth.requireAdmin(req, res, () => {
+    const email = req.params.email.toLowerCase();
+    if (ADMIN_EMAILS.includes(email)) return res.status(400).json({ error: 'Cannot remove admin' });
+    const data = req.deckAuth.readUsers();
     data.users = data.users.filter(e => e !== email);
-    await writeUsers(data);
+    req.deckAuth.writeUsers(data);
     res.json({ removed: email, total: data.users.length });
-  } catch (e) {
-    res.status(500).json({ error: 'Failed to remove user: ' + e.message });
-  }
+  });
 });
 
-app.get('/api/me', (req, res) => {
+app.get('/:slug/api/me', (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
   res.json({ email: req.user.email, name: req.user.name, photo: req.user.photo });
 });
 
+// Serve deck HTML (protected)
+app.get('/:slug', resolveSlug, (req, res) => {
+  req.deckAuth.requireAuth(req, res, () => {
+    res.sendFile(path.join(req.deckDir, 'public', 'index.html'));
+  });
+});
+
+// Static assets from deck's public/ folder
+app.use('/:slug', (req, res, next) => {
+  const slug = req.params.slug;
+  const deckPublic = path.join(DECKS_DIR, slug, 'public');
+  if (!fs.existsSync(path.join(DECKS_DIR, slug, 'deck.json'))) return next();
+  express.static(deckPublic, { index: false })(req, res, next);
+});
+
+// --- Health check ---
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', service: 'deck-drop', decks: listDecks().length });
+});
+
 // --- Start ---
 app.listen(PORT, () => {
-  console.log(`${deckMeta.name} deck running on http://localhost:${PORT}`);
+  const decks = listDecks();
+  console.log(`DeckDrop running on http://localhost:${PORT}`);
+  console.log(`Serving ${decks.length} decks: ${decks.join(', ')}`);
 });

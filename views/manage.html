@@ -375,7 +375,7 @@
           <input type="checkbox" id="dupCopyUsers" checked style="width: auto; margin: 0;">
           <span>Copy seed users from source</span>
         </label>
-        <div class="hint">HTML is always copied. Render URL is not copied — a new service will be created on deploy.</div>
+        <div class="hint">HTML is always copied.</div>
       </div>
       <div class="btn-row">
         <button class="btn-ghost" onclick="closeModal('duplicateModal')">Cancel</button>
@@ -420,6 +420,29 @@
     </div>
   </div>
 
+  <!-- Update modal -->
+  <div class="overlay" id="updateModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="updateTitle">Update Deck</h2>
+        <button class="close" onclick="closeModal('updateModal')">&#10005;</button>
+      </div>
+      <div class="field">
+        <label>New HTML File</label>
+        <label class="file-drop" id="updateFileDrop">
+          <input type="file" id="updateHtml" accept=".html,.htm">
+          <div>Click or drag updated HTML file here</div>
+          <div class="file-name" id="updateFileName"></div>
+        </label>
+      </div>
+      <div class="btn-row">
+        <button class="btn-ghost" id="updateCancelBtn" onclick="closeModal('updateModal')">Cancel</button>
+        <button class="btn-primary" id="updateBtn" onclick="runUpdate()">Update &amp; Push</button>
+      </div>
+      <div class="progress-log" id="updateLog" style="display: none;"></div>
+    </div>
+  </div>
+
   <!-- Settings modal -->
   <div class="overlay" id="settingsModal">
     <div class="modal">
@@ -440,14 +463,9 @@
         <input type="text" id="adminEmails" autocomplete="off" placeholder="itays@wix.com,michalru@wix.com">
       </div>
       <div class="field">
-        <label>Render API Key</label>
-        <input type="password" id="renderApiKey" autocomplete="off" placeholder="Leave blank to keep current">
-        <div class="hint">Get from https://dashboard.render.com/account/api-keys</div>
-      </div>
-      <div class="field">
-        <label>Auth Secret (shared signing key)</label>
-        <input type="password" id="authSecret" autocomplete="off" placeholder="Auto-generated on first deploy">
-        <div class="hint">Shared between auth proxy and all decks. Auto-generated if empty.</div>
+        <label>Production URL</label>
+        <input type="text" id="baseUrl" autocomplete="off" placeholder="https://deck-drop.onrender.com">
+        <div class="hint">The deployed service URL. Deck URLs will be {base}/{slug}.</div>
       </div>
       <div class="btn-row">
         <button class="btn-ghost" onclick="closeModal('settingsModal')">Cancel</button>
@@ -512,14 +530,12 @@
             <span>${d.userCount} user${d.userCount !== 1 ? 's' : ''}</span>
             <span>${d.hasHtml ? formatSize(d.htmlSize) + ' HTML' : 'no HTML'}</span>
           </div>
-          ${d.renderUrl
-            ? `<a class="live-link" href="${d.renderUrl}" target="_blank">${d.renderUrl.replace(/^https?:\/\//, '')}</a>`
-            : '<div class="not-deployed">Not deployed</div>'}
           <div class="actions">
             <button onclick="previewDeck('${d.slug}')">Preview</button>
             <button onclick="openUsers('${d.slug}')">Users</button>
             <button onclick="openDuplicate('${d.slug}')">Duplicate</button>
-            <button class="btn-primary" onclick="openDeploy('${d.slug}')">${d.renderUrl ? 'Re-deploy' : 'Deploy'}</button>
+            <button onclick="openUpdate('${d.slug}')">Update</button>
+            <button class="btn-primary" onclick="openDeploy('${d.slug}')">Deploy</button>
           </div>
         </div>
       `).join('') + `
@@ -632,12 +648,12 @@
       activeSlug = slug;
       deployedUrl = null;
       const deck = decks.find(d => d.slug === slug);
-      document.getElementById('deployTitle').textContent = (deck.renderUrl ? 'Re-deploy: ' : 'Deploy: ') + deck.name;
+      document.getElementById('deployTitle').textContent = 'Deploy: ' + deck.name;
       document.getElementById('deployLog').style.display = 'none';
       document.getElementById('deployLog').innerHTML = '';
       const btn = document.getElementById('deployBtn');
       btn.disabled = false;
-      btn.textContent = deck.renderUrl ? 'Re-deploy' : 'Deploy';
+      btn.textContent = 'Deploy';
       btn.onclick = runDeploy;
       document.getElementById('deployViewBtn').style.display = 'none';
       document.getElementById('deployCancelBtn').textContent = 'Cancel';
@@ -647,7 +663,7 @@
       if (!config.googleClientId) missing.push('Google Client ID');
       if (!config.hasGoogleSecret) missing.push('Google Client Secret');
       if (!config.adminEmails) missing.push('Admin Emails');
-      if (!config.hasRenderApiKey) missing.push('Render API Key');
+      if (!config.baseUrl) missing.push('Production URL');
 
       const statusEl = document.getElementById('deployConfigStatus');
       if (missing.length) {
@@ -662,9 +678,7 @@
           <div style="font-size: 13px; color: #94a3b8; margin-bottom: 16px; line-height: 1.7;">
             <div><span class="badge">✓</span> Google OAuth: <code style="color: #cbd5e1;">${config.googleClientId}</code></div>
             <div><span class="badge">✓</span> Admins: <code style="color: #cbd5e1;">${escapeHtml(config.adminEmails)}</code></div>
-            <div><span class="badge">✓</span> Render API: configured</div>
-            <div><span class="badge">${config.hasAuthSecret ? '✓' : '○'}</span> Auth Secret: ${config.hasAuthSecret ? 'configured' : 'will be auto-generated'}</div>
-            <div><span class="badge">✓</span> Auth Proxy: <code style="color: #cbd5e1;">${escapeHtml(config.authServiceUrl)}</code></div>
+            <div><span class="badge">✓</span> Service: <code style="color: #cbd5e1;">${escapeHtml(config.baseUrl)}</code></div>
           </div>`;
       }
       openModal('deployModal');
@@ -694,9 +708,9 @@
           btn.textContent = 'Retry';
           return;
         }
-        if (data.renderUrl) {
-          log.innerHTML += `<div class="log-line done">Live at: ${data.renderUrl}</div>`;
-          deployedUrl = data.renderUrl;
+        if (data.deckUrl) {
+          log.innerHTML += `<div class="log-line done">Live at: ${data.deckUrl}</div>`;
+          deployedUrl = data.deckUrl;
           const viewBtn = document.getElementById('deployViewBtn');
           viewBtn.style.display = '';
         }
@@ -720,17 +734,80 @@
       if (deployedUrl) window.open(deployedUrl, '_blank');
     }
 
+    // --- Update ---
+    let updateHtmlContent = null;
+
+    document.getElementById('updateHtml').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      document.getElementById('updateFileName').textContent = `${file.name} — ${formatSize(file.size)}`;
+      updateHtmlContent = await file.text();
+    });
+
+    function openUpdate(slug) {
+      activeSlug = slug;
+      const deck = decks.find(d => d.slug === slug);
+      document.getElementById('updateTitle').textContent = 'Update: ' + deck.name;
+      document.getElementById('updateHtml').value = '';
+      document.getElementById('updateFileName').textContent = '';
+      updateHtmlContent = null;
+      document.getElementById('updateLog').style.display = 'none';
+      document.getElementById('updateLog').innerHTML = '';
+      const btn = document.getElementById('updateBtn');
+      btn.disabled = false;
+      btn.textContent = 'Update & Push';
+      btn.onclick = runUpdate;
+      document.getElementById('updateCancelBtn').textContent = 'Cancel';
+      openModal('updateModal');
+    }
+
+    async function runUpdate() {
+      if (!updateHtmlContent) return toast('Select an HTML file first', true);
+      const btn = document.getElementById('updateBtn');
+      const log = document.getElementById('updateLog');
+      btn.disabled = true;
+      btn.textContent = 'Updating…';
+      log.style.display = 'block';
+      log.innerHTML = '<div class="log-line running">Uploading and pushing…</div>';
+
+      try {
+        const res = await fetch(`/api/decks/${activeSlug}/update`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ htmlContent: updateHtmlContent })
+        });
+        const data = await res.json();
+        log.innerHTML = '';
+        for (const step of (data.steps || [])) {
+          log.innerHTML += `<div class="log-line ${step.status}">${step.step}${step.message ? ': ' + escapeHtml(step.message) : ''}</div>`;
+        }
+        if (data.error) {
+          log.innerHTML += `<div class="log-line error">${escapeHtml(data.error)}</div>`;
+          btn.disabled = false;
+          btn.textContent = 'Retry';
+          return;
+        }
+        btn.disabled = false;
+        btn.textContent = 'Done';
+        btn.onclick = () => closeModal('updateModal');
+        document.getElementById('updateCancelBtn').textContent = 'Close';
+        toast('Updated — auto-deploy triggered');
+        await loadDecks();
+      } catch (err) {
+        log.innerHTML += `<div class="log-line error">${escapeHtml(err.message)}</div>`;
+        btn.disabled = false;
+        btn.textContent = 'Retry';
+      }
+    }
+
     // --- Settings ---
     async function openSettings() {
       const config = await api('GET', '/api/config');
       document.getElementById('gClientId').value = config.googleClientId || '';
       document.getElementById('gClientSecret').value = '';
       document.getElementById('adminEmails').value = config.adminEmails || '';
-      document.getElementById('renderApiKey').value = '';
-      document.getElementById('authSecret').value = '';
+      document.getElementById('baseUrl').value = config.baseUrl || '';
       document.getElementById('gClientSecret').placeholder = config.hasGoogleSecret ? 'Configured — leave blank to keep' : 'Enter secret';
-      document.getElementById('renderApiKey').placeholder = config.hasRenderApiKey ? 'Configured — leave blank to keep' : 'Enter API key';
-      document.getElementById('authSecret').placeholder = config.hasAuthSecret ? 'Configured — leave blank to keep' : 'Auto-generated on first deploy';
       openModal('settingsModal');
     }
 
@@ -739,8 +816,7 @@
         googleClientId: document.getElementById('gClientId').value.trim(),
         googleClientSecret: document.getElementById('gClientSecret').value.trim(),
         adminEmails: document.getElementById('adminEmails').value.trim(),
-        renderApiKey: document.getElementById('renderApiKey').value.trim(),
-        authSecret: document.getElementById('authSecret').value.trim()
+        baseUrl: document.getElementById('baseUrl').value.trim()
       };
       try {
         await api('PUT', '/api/config', body);

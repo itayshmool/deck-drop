@@ -370,14 +370,13 @@
           return;
         }
         content.innerHTML = '<div class="grid">' + data.decks.map(d => {
-          const viewUrl = d.renderUrl || `https://online-decks-${d.slug}.onrender.com`;
           return `
           <div class="card">
             <div class="card-label">${escapeHtml(d.slug)}</div>
             <div class="card-meta">${d.userCount} user${d.userCount !== 1 ? 's' : ''}</div>
             <div style="display:flex;gap:8px;">
               <button onclick="openDeck('${escapeHtml(d.slug)}')">Manage Users</button>
-              <a href="${escapeHtml(viewUrl)}" target="_blank" class="btn-view">View</a>
+              <a href="/${escapeHtml(d.slug)}" target="_blank" class="btn-view">View</a>
             </div>
           </div>`;
         }).join('') + '</div>';
