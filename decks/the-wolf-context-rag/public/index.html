@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Wolf — Context Documents & RAG Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --gold: #d4a847;
+    --gold-light: #f5e6b8;
+    --gold-bg: #faf6eb;
+    --blood: #c41e3a;
+    --blood-light: #fdf2f4;
+    --green: #2d8a4e;
+    --green-bg: #f0f8f3;
+    --dark: #1a1a1a;
+    --text: #2d2d2d;
+    --muted: #6b6b6b;
+    --bg: #ffffff;
+    --bg-warm: #fafaf8;
+    --border: #e8e4de;
+    --smoke: #8a8a7a;
+    --blue: #4a7fb5;
+    --blue-bg: #f0f4f8;
+    --purple: #7c5cbf;
+    --purple-bg: #f5f0fa;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    font-family: 'Crimson Text', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .deck { width: 100%; height: 100%; position: relative; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 50px 80px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  /* ---- Typography ---- */
+  h1, h2, h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .slide h1 { font-size: 64px; line-height: 1.05; color: var(--dark); }
+  .slide h2 { font-size: 42px; line-height: 1.1; color: var(--dark); margin-bottom: 20px; }
+  .slide h3 { font-size: 26px; color: var(--gold); margin-bottom: 12px; letter-spacing: 0.06em; }
+
+  .slide p, .slide li {
+    font-size: 19px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .slide p { margin-bottom: 12px; }
+
+  .slide ul { list-style: none; padding: 0; }
+  .slide ul li { padding: 5px 0 5px 24px; position: relative; }
+  .slide ul li::before {
+    content: '';
+    position: absolute; left: 0; top: 14px;
+    width: 8px; height: 8px;
+    background: var(--gold);
+    border-radius: 2px;
+    transform: rotate(45deg);
+  }
+
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .gold { color: var(--gold); }
+  .blood { color: var(--blood); }
+  .green { color: var(--green); }
+  .muted { color: var(--muted); }
+
+  .divider {
+    width: 70px; height: 4px;
+    background: var(--gold);
+    border: none; margin: 16px 0; border-radius: 2px;
+  }
+
+  /* ---- Code blocks ---- */
+  pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    line-height: 1.65;
+    padding: 22px 28px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    border-radius: 10px;
+    overflow-x: auto;
+    margin: 12px 0;
+  }
+  pre .kw { color: #cba6f7; }
+  pre .fn { color: #89b4fa; }
+  pre .str { color: #a6e3a1; }
+  pre .cm { color: #6c7086; font-style: italic; }
+  pre .op { color: #89dceb; }
+  pre .num { color: #fab387; }
+  pre .type { color: #f9e2af; }
+
+  /* ---- Tables ---- */
+  table {
+    width: 100%; border-collapse: collapse;
+    margin: 12px 0; font-size: 17px;
+  }
+  th {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px; letter-spacing: 0.08em;
+    text-transform: uppercase; text-align: left;
+    padding: 10px 14px;
+    background: var(--dark); color: var(--gold);
+    font-weight: 400;
+  }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tbody tr:nth-child(even) { background: var(--bg-warm); }
+
+  /* ---- Cards ---- */
+  .card-row { display: flex; gap: 18px; margin: 12px 0; }
+  .card {
+    flex: 1;
+    background: var(--bg-warm);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px;
+  }
+  .card h3 { font-size: 20px; margin-bottom: 8px; }
+  .card p, .card li { font-size: 16px; line-height: 1.5; }
+
+  /* ---- Pipeline flow ---- */
+  .pipeline {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 0;
+    margin: 10px 0;
+  }
+  .pipe-step {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 24px;
+    background: var(--bg-warm);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 100%; max-width: 680px;
+  }
+  .pipe-num {
+    flex-shrink: 0;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--dark); color: var(--gold);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pipe-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px; color: var(--dark);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .pipe-desc { font-size: 15px; color: var(--muted); margin-top: 1px; }
+  .pipe-arrow {
+    font-size: 18px; color: var(--smoke);
+    text-align: center; margin: 3px 0;
+  }
+
+  /* ---- Data levels ---- */
+  .level-stack {
+    display: flex; flex-direction: column; gap: 0; margin: 10px 0;
+    max-width: 700px;
+  }
+  .level-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 22px;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    background: var(--bg-warm);
+  }
+  .level-row:first-child { border-radius: 10px 10px 0 0; }
+  .level-row:last-child { border-radius: 0 0 10px 10px; border-bottom: 1px solid var(--border); }
+  .level-badge {
+    flex-shrink: 0;
+    width: 42px; height: 42px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px; color: #fff;
+  }
+  .level-row p { font-size: 17px; margin: 0; line-height: 1.4; }
+  .level-row strong { color: var(--dark); }
+
+  /* ---- Comparison ---- */
+  .compare {
+    display: flex; gap: 16px; margin: 12px 0;
+  }
+  .compare-box {
+    flex: 1; padding: 22px;
+    border-radius: 10px; font-size: 16px; line-height: 1.5;
+  }
+  .compare-box.before { background: var(--blood-light); border: 2px solid var(--blood); }
+  .compare-box.after { background: var(--green-bg); border: 2px solid var(--green); }
+  .compare-box .box-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px; letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .compare-box.before .box-title { color: var(--blood); }
+  .compare-box.after .box-title { color: var(--green); }
+  .compare-box code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; background: rgba(0,0,0,0.06);
+    padding: 2px 6px; border-radius: 4px;
+  }
+
+  /* ---- Title / Closing ---- */
+  .title-slide {
+    justify-content: center; align-items: center; text-align: center;
+  }
+  .title-slide h1 { font-size: 100px; letter-spacing: 0.08em; }
+  .title-slide .subtitle {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px; color: var(--muted);
+    letter-spacing: 0.1em; margin-top: 12px;
+    text-transform: uppercase;
+  }
+  .title-slide .tags {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px; color: var(--smoke);
+    margin-top: 24px; letter-spacing: 0.04em;
+  }
+
+  .closing-slide {
+    justify-content: center; align-items: center; text-align: center;
+    background: var(--dark);
+  }
+  .closing-slide h1 { color: var(--gold); font-size: 88px; }
+  .closing-slide .subtitle {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; color: #888;
+    letter-spacing: 0.1em; margin-top: 12px;
+    text-transform: uppercase;
+  }
+  .closing-slide .tech-tags {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px; color: #666;
+    margin-top: 36px; line-height: 2;
+    max-width: 600px;
+  }
+  .closing-slide .tech-tags span { color: var(--gold); }
+
+  /* ---- Nav ---- */
+  .nav {
+    position: fixed; bottom: 24px; right: 32px;
+    display: flex; gap: 8px; z-index: 100;
+  }
+  .nav button {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 2px solid var(--border); background: var(--bg);
+    color: var(--text); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; font-family: system-ui;
+  }
+  .nav button:hover { border-color: var(--gold); color: var(--gold); }
+
+  .progress {
+    position: fixed; bottom: 0; left: 0;
+    height: 3px; background: var(--gold);
+    transition: width 0.35s ease; z-index: 100;
+  }
+  .slide-counter {
+    position: fixed; bottom: 32px; left: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; color: var(--smoke); z-index: 100;
+  }
+
+  /* ---- Slide Menu ---- */
+  .menu-btn {
+    position: fixed; top: 20px; right: 36px;
+    width: 40px; height: 40px; border-radius: 8px;
+    border: 2px solid var(--border); background: var(--bg);
+    cursor: pointer; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 4px;
+    z-index: 200; transition: all 0.2s;
+  }
+  .menu-btn:hover { border-color: var(--gold); }
+  .menu-btn span {
+    display: block; width: 18px; height: 2px;
+    background: var(--text); border-radius: 1px;
+    transition: background 0.2s;
+  }
+  .menu-btn:hover span { background: var(--gold); }
+
+  .menu-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); z-index: 150;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  .menu-overlay.open { opacity: 1; pointer-events: auto; }
+
+  .menu-panel {
+    position: fixed; top: 0; right: -340px;
+    width: 320px; height: 100%;
+    background: var(--bg); border-left: 1px solid var(--border);
+    z-index: 160; padding: 60px 24px 24px;
+    overflow-y: auto; transition: right 0.35s ease;
+  }
+  .menu-panel.open { right: 0; }
+  .menu-panel h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; color: var(--gold);
+    letter-spacing: 0.08em; margin-bottom: 16px;
+  }
+  .menu-panel .menu-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; border-radius: 6px;
+    cursor: pointer; transition: background 0.15s;
+    border: none; background: none; width: 100%;
+    text-align: left; font-family: 'Crimson Text', serif;
+    font-size: 16px; color: var(--text);
+  }
+  .menu-panel .menu-item:hover { background: var(--bg-warm); }
+  .menu-panel .menu-item.active { background: var(--gold-bg); color: var(--dark); }
+  .menu-panel .item-num {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: var(--dark); color: var(--gold);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ---- Diagram: RAG flow ---- */
+  .rag-flow {
+    display: flex; align-items: stretch; gap: 0; margin: 16px 0;
+    max-width: 100%;
+  }
+  .rag-col {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; gap: 8px; padding: 18px 14px;
+    border: 1px solid var(--border); background: var(--bg-warm);
+    position: relative;
+  }
+  .rag-col:first-child { border-radius: 10px 0 0 10px; }
+  .rag-col:last-child { border-radius: 0 10px 10px 0; }
+  .rag-col h4 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 4px;
+  }
+  .rag-col p { font-size: 14px; color: var(--muted); text-align: center; margin: 0; line-height: 1.4; }
+  .rag-col .icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; margin-bottom: 6px;
+  }
+  .rag-arrow {
+    flex-shrink: 0; display: flex; align-items: center;
+    font-size: 22px; color: var(--gold); padding: 0 4px;
+    font-family: system-ui;
+  }
+</style>
+</head>
+<body>
+<div class="deck">
+
+<!-- ==================== SLIDE 1: Title ==================== -->
+<div class="slide title-slide active">
+  <h1>Context <span class="gold">&</span> RAG</h1>
+  <div class="subtitle">How The Wolf reads your documents</div>
+  <hr class="divider" style="margin:20px auto;">
+  <div class="tags">pgvector &middot; text-embedding-3-small &middot; cosine similarity &middot; 1536-dim</div>
+</div>
+
+<!-- ==================== SLIDE 2: Why Context? ==================== -->
+<div class="slide">
+  <h3>The Problem</h3>
+  <h2>Why Context Documents Matter</h2>
+  <hr class="divider">
+  <p>The Wolf analyzes your <strong>org structure</strong> (headcount, reporting lines, departments). But structure alone doesn't tell the full story.</p>
+  <div class="compare" style="margin-top:16px;">
+    <div class="compare-box before">
+      <div class="box-title">Without Context</div>
+      <ul style="list-style:none;padding:0;">
+        <li style="padding:4px 0;">"Department X has a 2.1:1 builder ratio"</li>
+        <li style="padding:4px 0;">"3 layers of management in team Y"</li>
+        <li style="padding:4px 0;">"15% contractor headcount"</li>
+      </ul>
+      <p style="margin-top:10px;font-size:15px;color:var(--blood);font-weight:600;">Raw metrics without meaning.</p>
+    </div>
+    <div class="compare-box after">
+      <div class="box-title">With Context</div>
+      <ul style="list-style:none;padding:0;">
+        <li style="padding:4px 0;">"Dept X is being merged per the 2026 plan"</li>
+        <li style="padding:4px 0;">"Team Y has key-person risk on its lead"</li>
+        <li style="padding:4px 0;">"Contractors are converting in Q2"</li>
+      </ul>
+      <p style="margin-top:10px;font-size:15px;color:var(--green);font-weight:600;">Insights grounded in strategy.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 3: Data Layers ==================== -->
+<div class="slide">
+  <h3>The Stack</h3>
+  <h2>Three Layers of Intelligence</h2>
+  <hr class="divider">
+  <div class="level-stack">
+    <div class="level-row">
+      <div class="level-badge" style="background:var(--gold);">L1</div>
+      <div>
+        <p><strong>Org Data</strong> &mdash; CSV/Excel upload. Employee records, reporting lines, departments, titles, locations. The structural foundation.</p>
+      </div>
+    </div>
+    <div class="level-row">
+      <div class="level-badge" style="background:var(--blood);">L2</div>
+      <div>
+        <p><strong>Performance Data</strong> &mdash; KPIs, velocity metrics, attrition rates, engagement scores. Quantitative evidence layer.</p>
+      </div>
+    </div>
+    <div class="level-row">
+      <div class="level-badge" style="background:var(--purple);">L3</div>
+      <div>
+        <p><strong>Context Documents</strong> &mdash; Strategic plans, QBR notes, culture docs, key-person risks, team context. The qualitative intelligence that makes analysis actionable.</p>
+      </div>
+    </div>
+  </div>
+  <p style="margin-top:16px;font-size:17px;">Each layer makes the Wolf's analysis deeper. <strong>Context documents</strong> are what separate a generic org report from a tailored transformation plan.</p>
+</div>
+
+<!-- ==================== SLIDE 4: Document Types ==================== -->
+<div class="slide">
+  <h3>Chapter IV &mdash; The Evidence</h3>
+  <h2>What You Can Upload</h2>
+  <hr class="divider">
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>What It Is</th>
+        <th>What The Wolf Learns</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="mono" style="color:var(--gold);">strategic_plan</span></td>
+        <td>Annual plans, OKRs, M&A memos</td>
+        <td>What the company is trying to achieve &mdash; aligns recommendations to strategy</td>
+      </tr>
+      <tr>
+        <td><span class="mono" style="color:var(--gold);">qbr_notes</span></td>
+        <td>QBR decks, business reviews, KPI definitions</td>
+        <td>Which metrics matter, what "good" looks like, department priorities</td>
+      </tr>
+      <tr>
+        <td><span class="mono" style="color:var(--gold);">key_person_risk</span></td>
+        <td>Leadership assessments, succession plans</td>
+        <td>Who is critical, single-points-of-failure, flight risks</td>
+      </tr>
+      <tr>
+        <td><span class="mono" style="color:var(--gold);">culture_notes</span></td>
+        <td>Culture decks, values docs, employee feedback</td>
+        <td>Change readiness, team dynamics, what restructuring would disrupt</td>
+      </tr>
+      <tr>
+        <td><span class="mono" style="color:var(--gold);">team_context</span></td>
+        <td>Team charters, project briefs, org memos</td>
+        <td>Why teams exist, cross-team dependencies, historical decisions</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ==================== SLIDE 5: Upload Methods ==================== -->
+<div class="slide">
+  <h3>Getting Data In</h3>
+  <h2>Two Ways to Add Context</h2>
+  <hr class="divider">
+  <div class="card-row">
+    <div class="card">
+      <h3 style="color:var(--gold);">File Upload</h3>
+      <p>Drag and drop <code>.pdf</code>, <code>.txt</code>, <code>.md</code>, or <code>.docx</code> files. The system extracts text automatically.</p>
+      <p style="font-size:15px;color:var(--muted);">PDFs are parsed with pdfjs-dist. Large documents are supported &mdash; the chunker handles any size.</p>
+      <p style="margin-top:12px;font-size:15px;"><strong>Best for:</strong> Existing documents, reports, presentations exported as PDF.</p>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--gold);">Text Paste</h3>
+      <p>Paste content directly into the text area. Give it a title and select a type.</p>
+      <p style="font-size:15px;color:var(--muted);">Great for notes, summaries, or information scattered across Slack/email/docs.</p>
+      <p style="margin-top:12px;font-size:15px;"><strong>Best for:</strong> Meeting notes, quick context, information you want to add without creating a file.</p>
+    </div>
+  </div>
+  <p style="font-size:16px;color:var(--muted);margin-top:8px;">Both methods trigger the same RAG pipeline: chunk &rarr; embed &rarr; store &rarr; ready for retrieval.</p>
+</div>
+
+<!-- ==================== SLIDE 6: RAG Pipeline ==================== -->
+<div class="slide">
+  <h3>Under the Hood</h3>
+  <h2>The RAG Pipeline</h2>
+  <hr class="divider">
+  <div class="pipeline">
+    <div class="pipe-step">
+      <div class="pipe-num">1</div>
+      <div>
+        <div class="pipe-label">Upload / Paste</div>
+        <div class="pipe-desc">Document saved to <code>context_documents</code> table. Status: <span class="mono" style="color:var(--smoke);">pending</span></div>
+      </div>
+    </div>
+    <div class="pipe-arrow">&darr;</div>
+    <div class="pipe-step">
+      <div class="pipe-num">2</div>
+      <div>
+        <div class="pipe-label">BullMQ Enqueue</div>
+        <div class="pipe-desc">Job added to <code>embedding-pipeline</code> queue. Status: <span class="mono" style="color:var(--gold);">processing</span></div>
+      </div>
+    </div>
+    <div class="pipe-arrow">&darr;</div>
+    <div class="pipe-step">
+      <div class="pipe-num">3</div>
+      <div>
+        <div class="pipe-label">Chunk</div>
+        <div class="pipe-desc">Split into ~800 token chunks with 100-token overlap. Sentence-boundary aware.</div>
+      </div>
+    </div>
+    <div class="pipe-arrow">&darr;</div>
+    <div class="pipe-step">
+      <div class="pipe-num">4</div>
+      <div>
+        <div class="pipe-label">Embed</div>
+        <div class="pipe-desc">OpenAI <code>text-embedding-3-small</code> &rarr; 1536-dimensional vectors. ~$0.02 per million tokens.</div>
+      </div>
+    </div>
+    <div class="pipe-arrow">&darr;</div>
+    <div class="pipe-step">
+      <div class="pipe-num">5</div>
+      <div>
+        <div class="pipe-label">Store in pgvector</div>
+        <div class="pipe-desc">Chunks + embeddings saved to <code>document_chunks</code>. HNSW index for fast cosine similarity search. Status: <span class="mono" style="color:var(--green);">ready</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 7: Retrieval ==================== -->
+<div class="slide">
+  <h3>At Analysis Time</h3>
+  <h2>How Context Gets Retrieved</h2>
+  <hr class="divider">
+  <div class="rag-flow">
+    <div class="rag-col">
+      <div class="icon" style="background:var(--gold-bg);color:var(--gold);">Q</div>
+      <h4 style="color:var(--gold);">Query Built</h4>
+      <p>Analysis scope converted to a natural language query. Department-scoped queries are narrower.</p>
+    </div>
+    <div class="rag-arrow">&rarr;</div>
+    <div class="rag-col">
+      <div class="icon" style="background:var(--purple-bg);color:var(--purple);">E</div>
+      <h4 style="color:var(--purple);">Query Embedded</h4>
+      <p>Query text converted to a 1536-dim vector using the same model as documents.</p>
+    </div>
+    <div class="rag-arrow">&rarr;</div>
+    <div class="rag-col">
+      <div class="icon" style="background:var(--blue-bg);color:var(--blue);">S</div>
+      <h4 style="color:var(--blue);">Similarity Search</h4>
+      <p>Cosine similarity via pgvector. Top 20 chunks retrieved, trimmed to token budget.</p>
+    </div>
+    <div class="rag-arrow">&rarr;</div>
+    <div class="rag-col">
+      <div class="icon" style="background:var(--green-bg);color:var(--green);">I</div>
+      <h4 style="color:var(--green);">Injected</h4>
+      <p>Retrieved chunks grouped by type and injected into agent prompts as structured context.</p>
+    </div>
+  </div>
+  <p style="margin-top:14px;">The retriever respects <strong>scope filters</strong>: department-focused analyses only see chunks tagged to that department (plus global context). Token budget prevents prompt overflow.</p>
+</div>
+
+<!-- ==================== SLIDE 8: Who Uses It ==================== -->
+<div class="slide">
+  <h3>All Agents Benefit</h3>
+  <h2>Context Flows Everywhere</h2>
+  <hr class="divider">
+  <table>
+    <thead>
+      <tr>
+        <th>Agent</th>
+        <th>What It Gets</th>
+        <th>How It Uses Context</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="gold" style="font-family:'Bebas Neue';font-size:18px;letter-spacing:0.04em;">THE WOLF</span></td>
+        <td>12K token budget, top-20 chunks</td>
+        <td>Grounds findings in strategic reality. Connects metrics to business goals.</td>
+      </tr>
+      <tr>
+        <td><span class="gold" style="font-family:'Bebas Neue';font-size:18px;letter-spacing:0.04em;">THE MIRROR</span></td>
+        <td>Same retrieved context as Wolf</td>
+        <td>Challenges findings using contextual counterarguments. Flags when Wolf ignores known constraints.</td>
+      </tr>
+      <tr>
+        <td><span class="gold" style="font-family:'Bebas Neue';font-size:18px;letter-spacing:0.04em;">THE FIXER</span></td>
+        <td>8K token budget, top-15 chunks</td>
+        <td>Aligns remediation steps to strategic priorities. Avoids recommending actions that conflict with plans.</td>
+      </tr>
+      <tr>
+        <td><span class="gold" style="font-family:'Bebas Neue';font-size:18px;letter-spacing:0.04em;">THE ARCHITECT</span></td>
+        <td>8K token budget, top-15 chunks</td>
+        <td>Factors strategic constraints into restructure proposals. Respects key-person risks and culture.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="margin-top:12px;font-size:16px;color:var(--muted);"><strong>Graceful degradation:</strong> If no context docs exist or RAG is unavailable, all agents fall back to structure-only analysis. Nothing breaks.</p>
+</div>
+
+<!-- ==================== SLIDE 9: Best Practices ==================== -->
+<div class="slide">
+  <h3>Getting the Most Out of It</h3>
+  <h2>Context Best Practices</h2>
+  <hr class="divider">
+  <div class="card-row">
+    <div class="card">
+      <h3 style="color:var(--green);">Do</h3>
+      <ul style="list-style:none;padding:0;">
+        <li style="padding:4px 0;font-size:16px;"><strong>Upload your annual/strategic plan</strong> &mdash; the single highest-impact document</li>
+        <li style="padding:4px 0;font-size:16px;"><strong>Add key-person risk notes</strong> &mdash; even bullet points help the Wolf flag single-points-of-failure</li>
+        <li style="padding:4px 0;font-size:16px;"><strong>Include QBR metric definitions</strong> &mdash; teaches the Wolf what "good" looks like in your org</li>
+        <li style="padding:4px 0;font-size:16px;"><strong>Tag department context</strong> &mdash; set entity_type to scope documents for focused analyses</li>
+        <li style="padding:4px 0;font-size:16px;"><strong>Re-upload when plans change</strong> &mdash; hit Reindex in the Control Room to refresh embeddings</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--blood);">Don't</h3>
+      <ul style="list-style:none;padding:0;">
+        <li style="padding:4px 0;font-size:16px;"><strong>Upload raw data exports</strong> &mdash; the chunker works on prose, not CSVs</li>
+        <li style="padding:4px 0;font-size:16px;"><strong>Paste entire books</strong> &mdash; focused, relevant content retrieves better than dump-everything</li>
+        <li style="padding:4px 0;font-size:16px;"><strong>Worry about formatting</strong> &mdash; the system strips to plain text before chunking</li>
+        <li style="padding:4px 0;font-size:16px;"><strong>Skip context for focused analyses</strong> &mdash; department scopes benefit the most from targeted context</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 10: Control Room ==================== -->
+<div class="slide">
+  <h3>Chapter XI</h3>
+  <h2>The Control Room</h2>
+  <hr class="divider">
+  <p>Monitor your RAG infrastructure from the admin dashboard at <code>/admin</code>.</p>
+  <div class="card-row" style="margin-top:16px;">
+    <div class="card" style="text-align:center;border-color:var(--gold);">
+      <h3 style="color:var(--gold);font-size:16px;">Documents</h3>
+      <p style="font-size:28px;font-family:'Bebas Neue';color:var(--dark);">Total uploaded</p>
+    </div>
+    <div class="card" style="text-align:center;border-color:var(--gold);">
+      <h3 style="color:var(--gold);font-size:16px;">Chunks</h3>
+      <p style="font-size:28px;font-family:'Bebas Neue';color:var(--dark);">Indexed pieces</p>
+    </div>
+    <div class="card" style="text-align:center;border-color:var(--gold);">
+      <h3 style="color:var(--gold);font-size:16px;">Tokens Used</h3>
+      <p style="font-size:28px;font-family:'Bebas Neue';color:var(--dark);">Embedding + query</p>
+    </div>
+    <div class="card" style="text-align:center;border-color:var(--gold);">
+      <h3 style="color:var(--gold);font-size:16px;">Est. Cost</h3>
+      <p style="font-size:28px;font-family:'Bebas Neue';color:var(--dark);">$0.02/1M tokens</p>
+    </div>
+  </div>
+  <p style="margin-top:16px;">The Control Room shows:</p>
+  <ul>
+    <li><strong>Status badges</strong> &mdash; Ready / Processing / Failed / Pending counts at a glance</li>
+    <li><strong>Usage chart</strong> &mdash; Daily token consumption over the last 30 days</li>
+    <li><strong>Document table</strong> &mdash; Every context doc with chunk count, dataset, status, and a Reindex button for failed/stale docs</li>
+  </ul>
+</div>
+
+<!-- ==================== SLIDE 11: Closing ==================== -->
+<div class="slide closing-slide">
+  <h1>Context Is King</h1>
+  <div class="subtitle">Structure tells you what. Context tells you why.</div>
+  <div class="tech-tags">
+    <span>pgvector</span> &middot; OpenAI embeddings &middot; <span>BullMQ</span> &middot; cosine similarity<br>
+    <span>800-token chunks</span> &middot; HNSW index &middot; <span>scope-aware retrieval</span><br>
+    graceful degradation &middot; <span>$0.02 / 1M tokens</span>
+  </div>
+</div>
+
+</div><!-- /deck -->
+
+<!-- Navigation -->
+<button class="menu-btn" id="menuBtn" aria-label="Slide menu">
+  <span></span><span></span><span></span>
+</button>
+<div class="menu-overlay" id="menuOverlay"></div>
+
+<div class="menu-panel" id="menuPanel">
+  <h3>Slides</h3>
+  <div id="menuItems"></div>
+</div>
+
+<div class="nav">
+  <button id="prev" aria-label="Previous slide">&larr;</button>
+  <button id="next" aria-label="Next slide">&rarr;</button>
+</div>
+<div class="progress" id="progress"></div>
+<div class="slide-counter" id="counter"></div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  const slideTitles = [
+    'Context & RAG',
+    'Why Context Matters',
+    'Three Layers of Intelligence',
+    'Document Types',
+    'Upload Methods',
+    'The RAG Pipeline',
+    'Retrieval at Analysis Time',
+    'All Agents Benefit',
+    'Best Practices',
+    'The Control Room',
+    'Context Is King'
+  ];
+
+  // Build menu
+  const menuItems = document.getElementById('menuItems');
+  slideTitles.forEach((title, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'menu-item' + (i === 0 ? ' active' : '');
+    const isSpecial = i === 0 || i === total - 1;
+    btn.innerHTML = isSpecial
+      ? '<div class="item-num" style="background:var(--gold);color:var(--dark);">~</div><span>' + title + '</span>'
+      : '<div class="item-num">' + i + '</div><span>' + title + '</span>';
+    btn.addEventListener('click', () => { goTo(i); closeMenu(); });
+    menuItems.appendChild(btn);
+  });
+
+  // Menu toggle
+  const menuBtn = document.getElementById('menuBtn');
+  const menuPanel = document.getElementById('menuPanel');
+  const menuOverlay = document.getElementById('menuOverlay');
+
+  function openMenu() { menuPanel.classList.add('open'); menuOverlay.classList.add('open'); }
+  function closeMenu() { menuPanel.classList.remove('open'); menuOverlay.classList.remove('open'); }
+  menuBtn.addEventListener('click', () => { menuPanel.classList.contains('open') ? closeMenu() : openMenu(); });
+  menuOverlay.addEventListener('click', closeMenu);
+
+  function goTo(n) {
+    if (n < 0 || n >= total) return;
+    slides[current].classList.remove('active');
+    current = n;
+    slides[current].classList.add('active');
+    document.getElementById('progress').style.width = ((current + 1) / total * 100) + '%';
+    document.getElementById('counter').textContent = (current + 1) + ' / ' + total;
+
+    menuItems.querySelectorAll('.menu-item').forEach((item, i) => {
+      item.classList.toggle('active', i === current);
+    });
+
+    const isDark = slides[current].classList.contains('closing-slide');
+    document.getElementById('counter').style.color = isDark ? '#555' : '';
+    document.querySelectorAll('.nav button').forEach(b => {
+      b.style.borderColor = isDark ? '#444' : '';
+      b.style.background = isDark ? '#2a2a2a' : '';
+      b.style.color = isDark ? '#999' : '';
+    });
+    menuBtn.style.borderColor = isDark ? '#444' : '';
+    menuBtn.style.background = isDark ? '#2a2a2a' : '';
+    menuBtn.querySelectorAll('span').forEach(s => { s.style.background = isDark ? '#999' : ''; });
+  }
+
+  document.getElementById('prev').addEventListener('click', () => goTo(current - 1));
+  document.getElementById('next').addEventListener('click', () => goTo(current + 1));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); goTo(current - 1); }
+    if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+    if (e.key === 'End') { e.preventDefault(); goTo(total - 1); }
+    if (e.key === 'Escape') { closeMenu(); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) { diff > 0 ? goTo(current + 1) : goTo(current - 1); }
+  });
+
+  goTo(0);
+</script>
+</body>
+</html>
