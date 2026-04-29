@@ -5,6 +5,7 @@ const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const path = require('path');
+const FileStore = require('session-file-store')(session);
 const { createAuth } = require('./middleware/auth');
 
 const app = express();
@@ -61,6 +62,12 @@ passport.use(new GoogleStrategy({
 app.set('trust proxy', 1);
 app.use(express.json());
 app.use(session({
+  store: new FileStore({
+    path: path.join(DATA_DIR, 'sessions'),
+    ttl: 7 * 24 * 60 * 60,
+    retries: 1,
+    logFn: () => {}
+  }),
   secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
   resave: false,
   saveUninitialized: false,
