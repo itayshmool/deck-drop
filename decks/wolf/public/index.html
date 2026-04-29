@@ -911,8 +911,12 @@
 API <span class="op">&rarr;</span> <span class="fn">db.insert</span>(status: <span class="str">"queued"</span>)
     <span class="op">&rarr;</span> <span class="fn">queue.add</span>({ analysisId, tenantId })
     <span class="op">&rarr;</span> Worker picks up <span class="op">&rarr;</span> status: <span class="str">"running"</span>
+    <span class="op">&rarr;</span> <span class="fn">updateProgress</span>(percentage, stage) <span class="op">&rarr;</span> DB write
     <span class="op">&rarr;</span> Success <span class="op">&rarr;</span> status: <span class="str">"completed"</span> + store results
     <span class="op">&rarr;</span> Failure <span class="op">&rarr;</span> retry <span class="num">3x</span> <span class="op">&rarr;</span> status: <span class="str">"failed"</span>
+
+<span class="cm">// Real-time progress: frontend polls every 3s</span>
+<span class="cm">// Animated progress bar with stage labels</span>
     </pre>
   </div>
 
@@ -963,7 +967,7 @@ API <span class="op">&rarr;</span> <span class="fn">db.insert</span>(status: <sp
     <span class="op">&darr;</span>
     <span class="op">+&mdash;&rarr;</span> <span class="fn">generatePDF</span>()                 <span class="dim">&mdash; analysis export</span>
     <span class="op">+&mdash;&rarr;</span> <span class="fn">generateFixPlanPDF</span>()          <span class="dim">&mdash; fix plan export</span>
-    <span class="op">+&mdash;&rarr;</span> <span class="fn">generateRestructurePlanPDF</span>()  <span class="dim">&mdash; restructure export</span>
+    <span class="op">+&mdash;&rarr;</span> <span class="fn">generateRestructurePlanPDF</span>()  <span class="dim">&mdash; restructure + affected employees</span>
     <span class="op">&darr;</span>
     <span class="op">+&mdash;&rarr;</span> Shared helpers:
           <span class="op">+&mdash;&mdash;</span> <span class="fn">checkPageBreak</span>()  <span class="dim">&mdash; auto page breaks</span>
@@ -975,12 +979,12 @@ API <span class="op">&rarr;</span> <span class="fn">db.insert</span>(status: <sp
         <p style="margin:0; font-size:15px;">Absolute x-positioned cells via <code class="mono" style="font-size:12px;">tableRow()</code> helper. ASCII-safe characters only.</p>
       </div>
       <div class="card" style="border-left:3px solid var(--blue); padding:16px;">
-        <h3 style="color:var(--dark); font-size:16px;">Scope-Aware Filenames</h3>
-        <p style="margin:0; font-size:15px;"><code class="mono" style="font-size:12px;">wolf-restructure-dept-engineering.pdf</code></p>
+        <h3 style="color:var(--dark); font-size:16px;">Names Toggle</h3>
+        <p style="margin:0; font-size:15px;">Checkbox &rarr; <code class="mono" style="font-size:12px;">?names=true</code> query param. Real names or anonymized IDs in PDF.</p>
       </div>
       <div class="card" style="border-left:3px solid var(--green); padding:16px;">
-        <h3 style="color:var(--dark); font-size:16px;">Streaming</h3>
-        <p style="margin:0; font-size:15px;">Hono <code class="mono" style="font-size:12px;">stream()</code> &rarr; Buffer.concat &rarr; write response</p>
+        <h3 style="color:var(--dark); font-size:16px;">Affected Employees</h3>
+        <p style="margin:0; font-size:15px;">Restructure PDF queries employees by department, categorizes into 4 groups, renders per-category tables.</p>
       </div>
     </div>
   </div>
@@ -1138,7 +1142,8 @@ app/
       export/page.tsx         <span class="cm">// Ch.VII THE CLEANUP</span>
       focus/page.tsx          <span class="cm">// Ch.VIII THE INTERROGATION</span>
       fix/page.tsx            <span class="cm">// Ch.IX  THE FIXING</span>
-      restructure/page.tsx    <span class="cm">// Ch.X   THE RESTRUCTURE</span>
+      restructure/page.tsx    <span class="cm">// Ch.X   THE RESTRUCTURE (+ affected employees)</span>
+    admin/page.tsx            <span class="cm">// Ch.XI  THE ADMIN (RAG dashboard)</span>
     </pre>
   </div>
 
@@ -1149,8 +1154,9 @@ app/
     <div class="tech-tags">
       <span>Provider-agnostic agents</span> &middot; AES-256-GCM encryption &middot; <span>Anonymized analysis</span><br>
       Deterministic consensus &middot; <span>PostgreSQL RLS</span> &middot; BullMQ orchestration<br>
-      <span>Configurable analysis</span> &middot; Department-level restructuring &middot; <span>PDF export pipeline</span><br>
+      <span>Configurable analysis</span> &middot; Department-level restructuring &middot; <span>PDF export with names toggle</span><br>
       <span>Org sidebar split view</span> &middot; Multi-tenant isolation &middot; <span>Zero-trust data flow</span><br>
+      RAG with pgvector &middot; <span>Real-time pipeline progress</span> &middot; Affected employees categorization<br>
       PDF upload ingestion &middot; <span>Scope-aware navigation</span> &middot; Immutable audit trail
     </div>
   </div>
