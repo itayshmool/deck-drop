@@ -111,9 +111,16 @@ app.get('/favicon.svg', (req, res) => {
 });
 
 // --- OAuth callback + failure ---
-app.get('/auth/google/callback',
-  passport.authenticate('google', { failureRedirect: '/auth/failed' }),
-  (req, res) => {
+app.get('/auth/google/callback', (req, res, next) => {
+  passport.authenticate('google', (err, user, info) => {
+    if (err) { console.error('OAuth error:', err); return res.redirect('/auth/failed'); }
+    if (!user) { console.error('OAuth no user:', info); return res.redirect('/auth/failed'); }
+    req.logIn(user, (loginErr) => {
+      if (loginErr) { console.error('Login error:', loginErr); return res.redirect('/auth/failed'); }
+      next();
+    });
+  })(req, res, next);
+}, (req, res) => {
     const target = req.session.authTarget;
     delete req.session.authTarget;
 
