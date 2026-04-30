@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strategic Product & Funnel Overview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;font-family:'DM Sans',sans-serif;background:#0f1117;color:#eeeef2;overflow:hidden;-webkit-font-smoothing:antialiased}
+
+  .deck{height:100%;display:flex;flex-direction:column}
+  .slides{flex:1;overflow:hidden;position:relative}
+
+  .slides::before,.slides::after{content:'';position:absolute;border-radius:50%;filter:blur(110px);opacity:.22;pointer-events:none;z-index:0}
+  .slides::before{width:320px;height:320px;background:#7c3aed;top:-100px;right:-80px}
+  .slides::after{width:260px;height:260px;background:#0ea5e9;bottom:-80px;left:-80px}
+
+  .slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:2.5rem 2rem;opacity:0;transform:translateY(30px);transition:all .45s ease;pointer-events:none;z-index:1;overflow-y:auto}
+  .slide.active{opacity:1;transform:translateY(0);pointer-events:auto}
+
+  /* Typography */
+  .tag{font-size:1.05rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#a78bfa;margin-bottom:1.25rem}
+  .tag--cyan{color:#22d3ee}
+  .tag--emerald{color:#34d399}
+  .tag--amber{color:#fbbf24}
+  .tag--pink{color:#f472b6}
+
+  h1{font-size:3.2rem;font-weight:800;line-height:1.08;letter-spacing:-.03em}
+  h2{font-size:2.6rem;font-weight:700;line-height:1.12;letter-spacing:-.02em}
+  h3{font-size:1.5rem;font-weight:700;margin-bottom:.35rem}
+
+  .body{font-size:1.4rem;color:#9ca3af;line-height:1.6;margin-top:1rem;max-width:640px}
+  .body-sm{font-size:1.25rem;color:#9ca3af;line-height:1.55}
+
+  /* Gradients */
+  .grad1{background:linear-gradient(135deg,#a78bfa,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .grad2{background:linear-gradient(135deg,#34d399,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .grad3{background:linear-gradient(135deg,#fbbf24,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .grad4{background:linear-gradient(135deg,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+  /* Glass card */
+  .glass{background:rgba(255,255,255,.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:1.4rem;margin-top:1rem}
+  .glass--purple{border-color:rgba(167,139,250,.18)}
+  .glass--cyan{border-color:rgba(34,211,238,.18)}
+  .glass--emerald{border-color:rgba(52,211,153,.18)}
+  .glass--amber{border-color:rgba(251,191,36,.18)}
+  .glass--pink{border-color:rgba(244,114,182,.18)}
+
+  .glass h3{color:#eeeef2}
+  .glass p{font-size:1.25rem;color:#9ca3af;line-height:1.55;margin-top:.3rem}
+
+  /* Chips */
+  .chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem}
+  .chip{font-size:1.15rem;font-weight:600;padding:.6rem 1.3rem;border-radius:100px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+  .chip--purple{border-color:rgba(167,139,250,.2);color:#c4b5fd}
+  .chip--cyan{border-color:rgba(34,211,238,.2);color:#67e8f9}
+  .chip--emerald{border-color:rgba(52,211,153,.2);color:#6ee7b7}
+
+  /* List */
+  .items{list-style:none;display:flex;flex-direction:column;gap:.65rem;margin-top:1rem}
+  .items li{display:flex;align-items:flex-start;gap:.75rem;font-size:1.35rem;color:#9ca3af;line-height:1.5}
+  .items li .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:.5rem}
+  .dot--purple{background:#a78bfa}
+  .dot--cyan{background:#22d3ee}
+  .dot--emerald{background:#34d399}
+  .dot--amber{background:#fbbf24}
+  .dot--pink{background:#f472b6}
+
+  /* Flow stack */
+  .flow{display:flex;flex-direction:column;gap:.6rem;margin-top:1rem}
+  .flow-row{display:flex;align-items:center;gap:.85rem;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:1rem 1.15rem}
+  .flow-num{font-size:1.4rem;font-weight:800;color:#a78bfa;flex-shrink:0;width:1.5rem}
+  .flow-num--cyan{color:#22d3ee}
+  .flow-num--emerald{color:#34d399}
+  .flow-num--amber{color:#fbbf24}
+  .flow-text{font-size:1.2rem;color:#d1d5db;line-height:1.4}
+  .flow-text strong{color:#eeeef2;font-weight:700}
+
+  /* Divider */
+  .rule{width:44px;height:3px;border-radius:3px;margin:1rem 0}
+  .rule--purple{background:#a78bfa}
+  .rule--cyan{background:#22d3ee}
+  .rule--emerald{background:#34d399}
+  .rule--amber{background:#fbbf24}
+
+  /* Emphasis */
+  .quote{border-left:3px solid #a78bfa;padding-left:1.15rem;margin-top:1.25rem}
+  .quote--cyan{border-color:#22d3ee}
+  .quote--amber{border-color:#fbbf24}
+  .quote p{font-size:1.35rem;color:#9ca3af;line-height:1.6;font-style:italic}
+
+  /* Title slide */
+  .title-slide{justify-content:flex-end;padding-bottom:3.5rem}
+  .logotype{font-size:1.1rem;font-weight:700;color:#6b7280;letter-spacing:.12em;text-transform:uppercase;margin-bottom:1.5rem}
+  .date{font-size:1.15rem;color:#6b7280;margin-top:1.5rem;font-weight:500}
+
+  /* Icon badge */
+  .badge{width:60px;height:60px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;margin-bottom:1.25rem}
+  .badge--purple{background:rgba(167,139,250,.1);color:#a78bfa}
+  .badge--cyan{background:rgba(34,211,238,.1);color:#22d3ee}
+  .badge--emerald{background:rgba(52,211,153,.1);color:#34d399}
+  .badge--amber{background:rgba(251,191,36,.1);color:#fbbf24}
+
+  /* Nav */
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;border-top:1px solid rgba(255,255,255,.06);z-index:2;background:rgba(15,17,23,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .nav button{width:48px;height:48px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;font-size:1.2rem;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .2s}
+  .nav button:active{background:rgba(255,255,255,.1)}
+  .nav button:disabled{opacity:.2}
+  .nav .count{font-size:.85rem;color:#6b7280;font-weight:600}
+  .nav .count span{color:#eeeef2}
+
+  .bar-track{height:3px;background:rgba(255,255,255,.04);position:absolute;top:0;left:0;right:0;z-index:3}
+  .bar-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#38bdf8);border-radius:0 2px 2px 0;transition:width .4s ease}
+
+  /* Character cards */
+  .char-header{display:flex;align-items:center;gap:1.25rem;margin-bottom:1.25rem}
+  .char-avatar{width:80px;height:80px;border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:2.6rem;flex-shrink:0;position:relative;overflow:hidden}
+  .char-avatar::after{content:'';position:absolute;inset:0;border-radius:24px;border:2px solid rgba(255,255,255,.1)}
+  .char-avatar--purple{background:linear-gradient(135deg,#7c3aed 0%,#a78bfa 100%)}
+  .char-avatar--cyan{background:linear-gradient(135deg,#0891b2 0%,#22d3ee 100%)}
+  .char-avatar--emerald{background:linear-gradient(135deg,#059669 0%,#34d399 100%)}
+  .char-meta{display:flex;flex-direction:column;gap:.15rem}
+  .char-name{font-size:1.8rem;font-weight:800;letter-spacing:-.02em}
+  .char-class{font-size:1.1rem;font-weight:600;color:#9ca3af}
+
+  .loadout{display:flex;flex-direction:column;gap:.6rem;margin-top:.5rem}
+  .loot{display:flex;align-items:center;gap:.85rem;padding:.85rem 1.1rem;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
+  .loot--active{border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.06)}
+  .loot--active-cyan{border-color:rgba(34,211,238,.25);background:rgba(34,211,238,.06)}
+  .loot--active-emerald{border-color:rgba(52,211,153,.25);background:rgba(52,211,153,.06)}
+  .loot--locked{opacity:.28}
+  .loot-icon{font-size:1.5rem;flex-shrink:0;width:2rem;text-align:center}
+  .loot-label{font-size:1.2rem;font-weight:600;color:#eeeef2}
+  .loot--locked .loot-label{color:#6b7280}
+  .loot-status{margin-left:auto;font-size:.85rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+  .loot-status--on{color:#a78bfa}
+  .loot-status--on-cyan{color:#22d3ee}
+  .loot-status--on-emerald{color:#34d399}
+  .loot-status--off{color:#4b5563}
+
+  /* Character select intro */
+  .char-trio{display:flex;gap:1rem;margin-top:1.25rem}
+  .char-mini{flex:1;display:flex;flex-direction:column;align-items:center;gap:.6rem;padding:1.1rem .75rem;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
+  .char-mini-avatar{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.8rem}
+  .char-mini-name{font-size:1.05rem;font-weight:700;text-align:center}
+  .char-mini-sub{font-size:.85rem;color:#9ca3af;text-align:center;line-height:1.3}
+
+  @media(min-width:640px){
+    .slide{padding:4rem 5rem;max-width:900px;margin:0 auto}
+    h1{font-size:4.2rem}
+    h2{font-size:3.2rem}
+    h3{font-size:1.8rem}
+    .body{font-size:1.6rem}
+    .glass p{font-size:1.45rem}
+    .flow-text{font-size:1.35rem}
+    .flow-num{font-size:1.6rem}
+    .items li{font-size:1.5rem}
+    .chip{font-size:1.3rem;padding:.7rem 1.5rem}
+    .quote p{font-size:1.5rem}
+    .tag{font-size:1.15rem}
+    .logotype{font-size:1.25rem}
+    .date{font-size:1.3rem}
+    .char-avatar{width:100px;height:100px;border-radius:28px;font-size:3.2rem}
+    .char-name{font-size:2.2rem}
+    .char-class{font-size:1.3rem}
+    .loot-label{font-size:1.4rem}
+    .loot-icon{font-size:1.7rem}
+    .loot-status{font-size:1rem}
+    .char-mini-avatar{width:72px;height:72px;font-size:2.2rem}
+    .char-mini-name{font-size:1.25rem}
+    .char-mini-sub{font-size:1rem}
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+  <div class="bar-track"><div class="bar-fill" id="bar"></div></div>
+  <div class="slides" id="sc">
+
+    <!-- 0 — Title -->
+    <div class="slide title-slide active">
+      <div class="logotype">Wix &middot; Base44</div>
+      <h1>Strategic Product<br>&amp; Funnel <span class="grad1">Overview</span></h1>
+      <p class="body">Primary product lines and conversion funnels heading into 2026.</p>
+      <p class="date">FY 2026 Offsite</p>
+    </div>
+
+    <!-- 1 — Agenda -->
+    <div class="slide">
+      <div class="tag">Agenda</div>
+      <h2>What we'll cover</h2>
+      <div class="rule rule--purple"></div>
+      <div class="flow">
+        <div class="flow-row">
+          <div class="flow-num">1</div>
+          <div class="flow-text"><strong>Website Core Creation</strong><br>Harmony, Studio 2.0, Headless</div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-num flow-num--cyan">2</div>
+          <div class="flow-text"><strong>Hosting &amp; Domains</strong><br>The AI-era infrastructure play</div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-num flow-num--emerald">3</div>
+          <div class="flow-text"><strong>Base44 App Platform</strong><br>Builder Engine &amp; Base as a Platform</div>
+        </div>
+        <div class="flow-row">
+          <div class="flow-num flow-num--amber">4</div>
+          <div class="flow-text"><strong>Shared Agentic Layer</strong><br>Super Agent &amp; core fundamentals</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 — Wix Intro -->
+    <div class="slide">
+      <div class="badge badge--purple">W</div>
+      <div class="tag">Wix.com</div>
+      <h2>Three pillars, powered by AI</h2>
+      <p class="body">Wix's ecosystem is structured into three primary premium categories supported by emerging AI technologies.</p>
+      <div class="chips">
+        <div class="chip chip--purple">Core Creation</div>
+        <div class="chip chip--cyan">Hosting &amp; Domains</div>
+        <div class="chip chip--emerald">Business Mgmt</div>
+      </div>
+    </div>
+
+    <!-- 3 — Core Creation intro -->
+    <div class="slide">
+      <div class="tag">Wix &middot; Pillar 1</div>
+      <h2>Website Core Creation</h2>
+      <div class="rule rule--purple"></div>
+      <p class="body">The best online tools to create any website, any business &mdash; AI first, integrated to any LLM.</p>
+      <div class="quote">
+        <p>Three distinct creation paths, each targeting a different builder profile.</p>
+      </div>
+    </div>
+
+    <!-- 4 — Harmony -->
+    <div class="slide">
+      <div class="chip chip--purple" style="display:inline-block;margin-bottom:1.25rem">For everyone</div>
+      <h2>Harmony</h2>
+      <p class="body">The best AI website builder in the world.</p>
+      <div class="glass glass--purple">
+        <h3>Vibe creation + drag &amp; drop</h3>
+        <p>A unique solution that combines AI-driven "vibe creation" with hands-on visual editing. No-code, no compromise.</p>
+      </div>
+    </div>
+
+    <!-- 5 — Studio 2.0 -->
+    <div class="slide">
+      <div class="chip chip--cyan" style="display:inline-block;margin-bottom:1.25rem">For professionals</div>
+      <h2>Studio 2.0</h2>
+      <p class="body">The best website builder for professionals.</p>
+      <div class="glass glass--cyan">
+        <h3>Advanced creative control</h3>
+        <p>Full design freedom with professional-grade tools. Built for agencies, freelancers, and power users who need pixel-level precision.</p>
+      </div>
+    </div>
+
+    <!-- 6 — Headless -->
+    <div class="slide">
+      <div class="chip chip--emerald" style="display:inline-block;margin-bottom:1.25rem">For developers</div>
+      <h2>Headless</h2>
+      <p class="body">Build your website with Claude, Codex, or any coding agent.</p>
+      <div class="glass glass--emerald">
+        <h3>Code-first + Wix business platform</h3>
+        <p>Use any LLM or coding agent to build the frontend. Leverage Wix's ecommerce, services, and payments out of the box.</p>
+      </div>
+    </div>
+
+    <!-- 7 — Hosting & Domains intro -->
+    <div class="slide">
+      <div class="tag tag--cyan">Wix &middot; Pillar 2</div>
+      <h2>Hosting &amp; <span class="grad2">Domains</span></h2>
+      <div class="rule rule--cyan"></div>
+      <p class="body">In the AI era, digital assets are created by coding agents, tools, and platforms. They all need hosting and domains to reach the world.</p>
+      <div class="quote quote--cyan">
+        <p>We manage billions of websites. We are deployment experts. Let's use this knowledge.</p>
+      </div>
+    </div>
+
+    <!-- 8 — Domains -->
+    <div class="slide">
+      <div class="tag tag--cyan">Domains</div>
+      <h2>Domain Management</h2>
+      <div class="glass glass--cyan">
+        <h3>Integrated domain offering</h3>
+        <p>Competitive pricing and seamless platform integration.</p>
+      </div>
+      <ul class="items" style="margin-top:1rem">
+        <li><span class="dot dot--cyan"></span>Partners: Donuts, Radix, Verisign</li>
+        <li><span class="dot dot--cyan"></span>Auto-connected to Wix sites</li>
+        <li><span class="dot dot--cyan"></span>Managed DNS &amp; SSL</li>
+      </ul>
+    </div>
+
+    <!-- 9 — Hosting -->
+    <div class="slide">
+      <div class="tag tag--cyan">Hosting</div>
+      <h2>Hosting Platform</h2>
+      <div class="glass glass--cyan">
+        <h3>Beyond Wix sites</h3>
+        <p>Build a hosting platform where Wix is a tenant &mdash; but external companies and individuals can host too.</p>
+      </div>
+      <div class="glass">
+        <h3 style="color:#22d3ee">Competitive landscape</h3>
+        <p>Platforms like Render and Vercel are exploding. We can capture share by leveraging our deployment expertise.</p>
+      </div>
+    </div>
+
+    <!-- 10 — Base44 Intro -->
+    <div class="slide">
+      <div class="badge badge--emerald">B</div>
+      <div class="tag tag--emerald">Base44</div>
+      <h2>From website builder to <span class="grad4">app creation platform</span></h2>
+      <p class="body">Base44 has transitioned into a robust application creation platform for everyday builders and serious developers alike.</p>
+    </div>
+
+    <!-- 11 — Builder Engine -->
+    <div class="slide">
+      <div class="tag tag--emerald">Base44 &middot; Core</div>
+      <h2>Builder Engine</h2>
+      <p class="body">Enables everyday builders to create functional applications with little friction.</p>
+      <div class="chips">
+        <div class="chip chip--emerald">Plan Mode</div>
+        <div class="chip chip--emerald">Debug Mode</div>
+        <div class="chip chip--emerald">Advisors</div>
+      </div>
+      <p class="body-sm" style="margin-top:.75rem;color:#6b7280">Q1 2026 Roadmap</p>
+    </div>
+
+    <!-- 12 — Base as a Platform -->
+    <div class="slide">
+      <div class="tag tag--emerald">Base44 &middot; Platform</div>
+      <h2>Base as a Platform</h2>
+      <p class="body">For serious developers, the platform is expanding with production-grade infrastructure.</p>
+      <ul class="items" style="margin-top:1.25rem">
+        <li><span class="dot dot--emerald"></span>Staging environments</li>
+        <li><span class="dot dot--emerald"></span>Databases</li>
+        <li><span class="dot dot--emerald"></span>User management</li>
+      </ul>
+    </div>
+
+    <!-- 13 — Super Agent -->
+    <div class="slide">
+      <div class="tag tag--amber">Convergence</div>
+      <h2>Shared Agentic <span class="grad3">Management</span></h2>
+      <div class="rule rule--amber"></div>
+      <p class="body">Whatever you build &mdash; website, app, ecom business, service app &mdash; Wix and Base44 provide a full agentic business management suite.</p>
+      <div class="glass glass--amber">
+        <h3 style="color:#fbbf24">Base44 "Super Agent"</h3>
+        <p>A shared AI agent platform that manages any business or application created on Wix or Base44.</p>
+      </div>
+    </div>
+
+    <!-- 14 — Core Fundamentals -->
+    <div class="slide">
+      <div class="tag tag--pink">Core Fundamentals</div>
+      <h2>Available <span class="grad3">everywhere</span></h2>
+      <div class="glass glass--pink">
+        <h3>Creation via any LLM</h3>
+        <p>Every creation solution fully available from ChatGPT, Gemini, Claude, and local agents (Claude Code, Codex) via plugins and skills.</p>
+      </div>
+      <div class="glass glass--pink">
+        <h3>Business management via any LLM</h3>
+        <p>Inventory, booking calendar, and all business tools accessible from any cloud LLM and coding agent.</p>
+      </div>
+    </div>
+
+    <!-- 15 — Character Select Intro -->
+    <div class="slide">
+      <div class="tag tag--amber">Appendix</div>
+      <h2>Choose your <span class="grad3">builder</span></h2>
+      <p class="body">Three audience profiles, each with a unique product loadout.</p>
+      <div class="char-trio">
+        <div class="char-mini">
+          <div class="char-mini-avatar char-avatar--purple">&#9997;&#65039;</div>
+          <div class="char-mini-name">The Creator</div>
+          <div class="char-mini-sub">DIY</div>
+        </div>
+        <div class="char-mini">
+          <div class="char-mini-avatar char-avatar--cyan">&#9998;&#65039;</div>
+          <div class="char-mini-name">The Pro</div>
+          <div class="char-mini-sub">Designers</div>
+        </div>
+        <div class="char-mini">
+          <div class="char-mini-avatar char-avatar--emerald">&#10095;_</div>
+          <div class="char-mini-name">The Coder</div>
+          <div class="char-mini-sub">Developers</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 16 — The Creator -->
+    <div class="slide">
+      <div class="char-header">
+        <div class="char-avatar char-avatar--purple">&#9997;&#65039;</div>
+        <div class="char-meta">
+          <div class="char-name">The Creator</div>
+          <div class="char-class">DIY Builder</div>
+        </div>
+      </div>
+      <div class="loadout">
+        <div class="loot loot--active">
+          <div class="loot-icon">&#10024;</div>
+          <div class="loot-label">Harmony</div>
+          <div class="loot-status loot-status--on">Unlocked</div>
+        </div>
+        <div class="loot loot--locked">
+          <div class="loot-icon">&#127912;</div>
+          <div class="loot-label">Studio</div>
+          <div class="loot-status loot-status--off">&#8212;</div>
+        </div>
+        <div class="loot loot--locked">
+          <div class="loot-icon">&#128268;</div>
+          <div class="loot-label">Headless</div>
+          <div class="loot-status loot-status--off">&#8212;</div>
+        </div>
+        <div class="loot loot--active">
+          <div class="loot-icon">&#128736;</div>
+          <div class="loot-label">Base44</div>
+          <div class="loot-status loot-status--on">Unlocked</div>
+        </div>
+        <div class="loot loot--locked">
+          <div class="loot-icon">&#9881;&#65039;</div>
+          <div class="loot-label">Base44 Platform</div>
+          <div class="loot-status loot-status--off">&#8212;</div>
+        </div>
+        <div class="loot loot--locked">
+          <div class="loot-icon">&#9729;&#65039;</div>
+          <div class="loot-label">Hosting</div>
+          <div class="loot-status loot-status--off">&#8212;</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 17 — The Pro -->
+    <div class="slide">
+      <div class="char-header">
+        <div class="char-avatar char-avatar--cyan">&#9998;&#65039;</div>
+        <div class="char-meta">
+          <div class="char-name">The Pro</div>
+          <div class="char-class">Professional &amp; Designer</div>
+        </div>
+      </div>
+      <div class="loadout">
+        <div class="loot loot--active-cyan">
+          <div class="loot-icon">&#10024;</div>
+          <div class="loot-label">Harmony</div>
+          <div class="loot-status loot-status--on-cyan">Unlocked</div>
+        </div>
+        <div class="loot loot--active-cyan">
+          <div class="loot-icon">&#127912;</div>
+          <div class="loot-label">Studio</div>
+          <div class="loot-status loot-status--on-cyan">Unlocked</div>
+        </div>
+        <div class="loot loot--active-cyan">
+          <div class="loot-icon">&#128268;</div>
+          <div class="loot-label">Headless</div>
+          <div class="loot-status loot-status--on-cyan">Unlocked</div>
+        </div>
+        <div class="loot loot--active-cyan">
+          <div class="loot-icon">&#128736;</div>
+          <div class="loot-label">Base44</div>
+          <div class="loot-status loot-status--on-cyan">Unlocked</div>
+        </div>
+        <div class="loot loot--locked">
+          <div class="loot-icon">&#9881;&#65039;</div>
+          <div class="loot-label">Base44 Platform</div>
+          <div class="loot-status loot-status--off">&#8212;</div>
+        </div>
+        <div class="loot loot--locked">
+          <div class="loot-icon">&#9729;&#65039;</div>
+          <div class="loot-label">Hosting</div>
+          <div class="loot-status loot-status--off">&#8212;</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 18 — The Coder -->
+    <div class="slide">
+      <div class="char-header">
+        <div class="char-avatar char-avatar--emerald">&#10095;_</div>
+        <div class="char-meta">
+          <div class="char-name">The Coder</div>
+          <div class="char-class">Developer</div>
+        </div>
+      </div>
+      <div class="loadout">
+        <div class="loot loot--locked">
+          <div class="loot-icon">&#10024;</div>
+          <div class="loot-label">Harmony</div>
+          <div class="loot-status loot-status--off">&#8212;</div>
+        </div>
+        <div class="loot loot--locked">
+          <div class="loot-icon">&#127912;</div>
+          <div class="loot-label">Studio</div>
+          <div class="loot-status loot-status--off">&#8212;</div>
+        </div>
+        <div class="loot loot--active-emerald">
+          <div class="loot-icon">&#128268;</div>
+          <div class="loot-label">Headless</div>
+          <div class="loot-status loot-status--on-emerald">Unlocked</div>
+        </div>
+        <div class="loot loot--locked">
+          <div class="loot-icon">&#128736;</div>
+          <div class="loot-label">Base44</div>
+          <div class="loot-status loot-status--off">&#8212;</div>
+        </div>
+        <div class="loot loot--active-emerald">
+          <div class="loot-icon">&#9881;&#65039;</div>
+          <div class="loot-label">Base44 Platform</div>
+          <div class="loot-status loot-status--on-emerald">Unlocked</div>
+        </div>
+        <div class="loot loot--active-emerald">
+          <div class="loot-icon">&#9729;&#65039;</div>
+          <div class="loot-label">Hosting</div>
+          <div class="loot-status loot-status--on-emerald">Unlocked</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 19 — Closing -->
+    <div class="slide title-slide">
+      <div class="logotype">Wix &middot; Base44 &middot; 2026</div>
+      <h1><span class="grad1">AI first.</span><br><span class="grad2">Open to all.</span><br><span class="grad3">One platform.</span></h1>
+      <p class="body">Create anything. Manage everything.<br>From any LLM, any agent, anywhere.</p>
+    </div>
+
+  </div>
+
+  <nav class="nav">
+    <button id="p" aria-label="Previous" disabled>&#8592;</button>
+    <div class="count"><span id="c">1</span> / <span id="t"></span></div>
+    <button id="n" aria-label="Next">&#8594;</button>
+  </nav>
+</div>
+
+<script>
+const S=document.querySelectorAll('.slide'),T=S.length;let i=0;
+const p=document.getElementById('p'),n=document.getElementById('n'),c=document.getElementById('c'),t=document.getElementById('t'),bar=document.getElementById('bar');
+t.textContent=T;bar.style.width=(1/T*100)+'%';
+
+function go(x){
+  if(x<0||x>=T)return;
+  S[i].classList.remove('active');
+  i=x;
+  S[i].classList.add('active');
+  c.textContent=i+1;
+  p.disabled=i===0;
+  n.disabled=i===T-1;
+  bar.style.width=((i+1)/T*100)+'%';
+}
+
+p.onclick=()=>go(i-1);
+n.onclick=()=>go(i+1);
+
+document.onkeydown=e=>{
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();go(i+1)}
+  if(e.key==='ArrowLeft'){e.preventDefault();go(i-1)}
+};
+
+let sx=0;
+document.getElementById('sc').addEventListener('touchstart',e=>sx=e.changedTouches[0].screenX,{passive:true});
+document.getElementById('sc').addEventListener('touchend',e=>{
+  const d=e.changedTouches[0].screenX-sx;
+  if(Math.abs(d)>50){d<0?go(i+1):go(i-1)}
+},{passive:true});
+</script>
+
+</body>
+</html>
