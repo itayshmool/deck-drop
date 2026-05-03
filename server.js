@@ -237,13 +237,25 @@ app.get('/admin/api/decks/:slug/print', requireGlobalAdmin, (req, res) => {
   html = html.replace(/(<img[^>]+src=")(?!https?:\/\/|\/|data:)(.*?)(")/gi, `$1/${slug}/$2$3`);
 
   const printCSS = `<style>
-    .deckdrop-print-mode .slide { display: flex !important; break-after: page; }
+    .deckdrop-print-mode .slide {
+      position: relative !important;
+      inset: auto !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      transform: none !important;
+      display: flex !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      break-after: page;
+      page-break-after: always;
+    }
     .deckdrop-print-mode .nav, .deckdrop-print-mode .progress,
-    .deckdrop-print-mode .slide-counter, .deckdrop-print-mode [class*="nav"] { display: none !important; }
+    .deckdrop-print-mode .slide-counter, .deckdrop-print-mode .menu-btn,
+    .deckdrop-print-mode .menu-panel, .deckdrop-print-mode .menu-overlay,
+    .deckdrop-print-mode [class*="nav-btn"] { display: none !important; }
     @media print {
       @page { size: landscape; margin: 0; }
       body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      .slide { display: flex !important; break-after: page; page-break-after: always; }
     }
   </style>`;
 
