@@ -136,6 +136,22 @@
       transition: color 0.2s, border-color 0.2s;
     }
     .btn-view:hover { color: #deff9a; border-color: #deff9a; }
+    .btn-pdf {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      color: #64748b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .btn-pdf:hover { color: #deff9a; border-color: #deff9a; }
 
     /* Modal overlay */
     .overlay {
@@ -374,9 +390,10 @@
           <div class="card">
             <div class="card-label">${escapeHtml(d.slug)}</div>
             <div class="card-meta">${d.userCount} user${d.userCount !== 1 ? 's' : ''}</div>
-            <div style="display:flex;gap:8px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button onclick="openDeck('${escapeHtml(d.slug)}')">Manage Users</button>
               <a href="/${escapeHtml(d.slug)}" target="_blank" class="btn-view">View</a>
+              <a href="/admin/api/decks/${escapeHtml(d.slug)}/print" target="_blank" class="btn-pdf">PDF</a>
             </div>
           </div>`;
         }).join('') + '</div>';

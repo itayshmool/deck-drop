@@ -225,6 +225,39 @@ app.delete('/admin/api/decks/:slug/:email', requireGlobalAdmin, (req, res) => {
   res.json({ removed: email, total: data.users.length });
 });
 
+// --- Print-ready deck for PDF export ---
+app.get('/admin/api/decks/:slug/print', requireGlobalAdmin, (req, res) => {
+  const slug = req.params.slug;
+  const htmlPath = path.join(DECKS_DIR, slug, 'public', 'index.html');
+  if (!fs.existsSync(htmlPath)) return res.status(404).send('Deck not found');
+
+  let html = fs.readFileSync(htmlPath, 'utf8');
+
+  // Rewrite relative img src paths to absolute
+  html = html.replace(/(<img[^>]+src=")(?!https?:\/\/|\/|data:)(.*?)(")/gi, `$1/${slug}/$2$3`);
+
+  const printCSS = `<style>
+    .deckdrop-print-mode .slide { display: flex !important; break-after: page; }
+    .deckdrop-print-mode .nav, .deckdrop-print-mode .progress,
+    .deckdrop-print-mode .slide-counter, .deckdrop-print-mode [class*="nav"] { display: none !important; }
+    @media print {
+      @page { size: landscape; margin: 0; }
+      body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .slide { display: flex !important; break-after: page; page-break-after: always; }
+    }
+  </style>`;
+
+  const printScript = `<script>
+    document.body.classList.add('deckdrop-print-mode');
+    setTimeout(() => window.print(), 600);
+  </script>`;
+
+  html = html.replace('</head>', printCSS + '</head>');
+  html = html.replace('</body>', printScript + '</body>');
+
+  res.type('html').send(html);
+});
+
 // --- User seed API (called by manager during deploy) ---
 app.put('/api/:slug/seed', (req, res) => {
   const { users } = req.body;
