@@ -532,6 +532,7 @@
           </div>
           <div class="actions">
             <button onclick="previewDeck('${d.slug}')">Preview</button>
+            <button onclick="printDeck('${d.slug}')">PDF</button>
             <button onclick="openUsers('${d.slug}')">Users</button>
             <button onclick="openDuplicate('${d.slug}')">Duplicate</button>
             <button onclick="openUpdate('${d.slug}')">Update</button>
@@ -551,9 +552,13 @@
       return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
 
-    // --- Preview ---
+    // --- Preview & PDF ---
     function previewDeck(slug) {
       window.open(`/api/decks/${slug}/preview`, '_blank');
+    }
+
+    function printDeck(slug) {
+      window.open(`/api/decks/${slug}/print`, '_blank');
     }
 
     // --- Create ---

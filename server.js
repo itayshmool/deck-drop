@@ -233,19 +233,41 @@ app.get('/admin/api/decks/:slug/print', requireGlobalAdmin, (req, res) => {
 
   let html = fs.readFileSync(htmlPath, 'utf8');
 
+  // Remove all script tags so deck JS doesn't interfere with print layout
+  html = html.replace(/<script[\s\S]*?<\/script>/gi, '');
+
   // Rewrite relative img src paths to absolute
   html = html.replace(/(<img[^>]+src=")(?!https?:\/\/|\/|data:)(.*?)(")/gi, `$1/${slug}/$2$3`);
 
+  // Add deckdrop-print-mode class directly to <body>
+  html = html.replace(/<body([^>]*)>/, '<body$1 class="deckdrop-print-mode">');
+
   const printCSS = `<style>
+    .deckdrop-print-mode, .deckdrop-print-mode * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    .deckdrop-print-mode {
+      overflow: visible !important;
+      height: auto !important;
+      width: auto !important;
+    }
+    .deckdrop-print-mode .deck {
+      height: auto !important;
+      overflow: visible !important;
+    }
     .deckdrop-print-mode .slide {
       position: relative !important;
       inset: auto !important;
       opacity: 1 !important;
       visibility: visible !important;
       transform: none !important;
+      transition: none !important;
       display: flex !important;
       width: 100vw !important;
       height: 100vh !important;
+      overflow: hidden !important;
       break-after: page;
       page-break-after: always;
     }
@@ -255,14 +277,10 @@ app.get('/admin/api/decks/:slug/print', requireGlobalAdmin, (req, res) => {
     .deckdrop-print-mode [class*="nav-btn"] { display: none !important; }
     @media print {
       @page { size: landscape; margin: 0; }
-      body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     }
   </style>`;
 
-  const printScript = `<script>
-    document.body.classList.add('deckdrop-print-mode');
-    setTimeout(() => window.print(), 600);
-  </script>`;
+  const printScript = `<script>setTimeout(() => window.print(), 600);</script>`;
 
   html = html.replace('</head>', printCSS + '</head>');
   html = html.replace('</body>', printScript + '</body>');

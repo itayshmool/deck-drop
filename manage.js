@@ -264,6 +264,69 @@ app.get('/api/decks/:slug/preview', (req, res) => {
   res.sendFile(htmlPath);
 });
 
+app.get('/api/decks/:slug/print', (req, res) => {
+  const { slug } = req.params;
+  if (!isValidSlug(slug)) return res.status(400).send('Invalid slug');
+  const htmlPath = path.join(DECKS_DIR, slug, 'public', 'index.html');
+  if (!fs.existsSync(htmlPath)) return res.status(404).send('No HTML for this deck');
+
+  let html = fs.readFileSync(htmlPath, 'utf8');
+
+  // Remove all script tags so deck JS doesn't interfere with print layout
+  html = html.replace(/<script[\s\S]*?<\/script>/gi, '');
+
+  // Rewrite relative img src paths to absolute for local preview
+  html = html.replace(/(<img[^>]+src=")(?!https?:\/\/|\/|data:)(.*?)(")/gi, `$1/api/decks/${slug}/images/$2$3`);
+
+  // Add deckdrop-print-mode class directly to <body>
+  html = html.replace(/<body([^>]*)>/, '<body$1 class="deckdrop-print-mode">');
+
+  const printCSS = `<style>
+    .deckdrop-print-mode, .deckdrop-print-mode * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    .deckdrop-print-mode {
+      overflow: visible !important;
+      height: auto !important;
+      width: auto !important;
+    }
+    .deckdrop-print-mode .deck {
+      height: auto !important;
+      overflow: visible !important;
+    }
+    .deckdrop-print-mode .slide {
+      position: relative !important;
+      inset: auto !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      transform: none !important;
+      transition: none !important;
+      display: flex !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      overflow: hidden !important;
+      break-after: page;
+      page-break-after: always;
+    }
+    .deckdrop-print-mode .nav, .deckdrop-print-mode .progress,
+    .deckdrop-print-mode .slide-counter, .deckdrop-print-mode .menu-btn,
+    .deckdrop-print-mode .menu-panel, .deckdrop-print-mode .menu-overlay,
+    .deckdrop-print-mode [class*="nav-btn"] { display: none !important; }
+    @media print {
+      @page { size: landscape; margin: 0; }
+    }
+  </style>`;
+
+  const printScript = `<script>setTimeout(() => window.print(), 600);</script>`;
+
+  html = html.replace('</head>', printCSS + '</head>');
+  html = html.replace('</body>', printScript + '</body>');
+
+  res.type('html').send(html);
+});
+
 app.get('/api/decks/:slug/images/*', (req, res) => {
   const { slug } = req.params;
   if (!isValidSlug(slug)) return res.status(400).send('Invalid slug');
